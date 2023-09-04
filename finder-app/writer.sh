@@ -23,7 +23,7 @@ name_directory="${arg_1%/*}"
 if ! [ -d "$name_directory" ]
 then
    echo "The given path is not a valid file directory, so new directory created"
-   mkdir $name_directory
+   mkdir -p $name_directory
 fi
 
 

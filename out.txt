@@ -1,0 +1,181 @@
+starting test with SKIP_BUILD="" and DO_VALIDATE=""
+Running test with user vidhya
+-- Generating ;/home/vidhya/aesd/assignment-1-vidhyapalaniappan/assignment-autotest/test/assignment1/Test_hello_Runner.c;/home/vidhya/aesd/assignment-1-vidhyapalaniappan/assignment-autotest/test/assignment1/Test_assignment_validate_Runner.c;/home/vidhya/aesd/assignment-1-vidhyapalaniappan/assignment-autotest/../student-test/assignment1/Test_validate_username_Runner.c from test/assignment1/Test_hello.c;test/assignment1/Test_assignment_validate.c;../student-test/assignment1/Test_validate_username.c
+-- Building executable including ;/home/vidhya/aesd/assignment-1-vidhyapalaniappan/assignment-autotest/test/assignment1/Test_hello_Runner.c;/home/vidhya/aesd/assignment-1-vidhyapalaniappan/assignment-autotest/test/assignment1/Test_assignment_validate_Runner.c;/home/vidhya/aesd/assignment-1-vidhyapalaniappan/assignment-autotest/../student-test/assignment1/Test_validate_username_Runner.c test/assignment1/Test_hello.c;test/assignment1/Test_assignment_validate.c;../student-test/assignment1/Test_validate_username.c and ../examples/autotest-validate/autotest-validate.c
+-- Configuring done
+-- Generating done
+-- Build files have been written to: /home/vidhya/aesd/assignment-1-vidhyapalaniappan/build
+[  8%] Building C object assignment-autotest/Unity/src/CMakeFiles/unity.dir/unity.c.o
+[ 16%] Linking C static library libunity.a
+[ 16%] Built target unity
+[ 25%] Generating ../../assignment-autotest/test/assignment1/Test_hello_Runner.c, ../../assignment-autotest/test/assignment1/Test_assignment_validate_Runner.c, ../../student-test/assignment1/Test_validate_username_Runner.c, ../../assignment-autotest/test/unity_runner.c
+Test files for auto dependency generation test/assignment1/Test_hello.c test/assignment1/Test_assignment_validate.c ../student-test/assignment1/Test_validate_username.c
+Autogenerating runner for test/assignment1/Test_hello.c
+Autogenerating runner for test/assignment1/Test_assignment_validate.c
+Autogenerating runner for ../student-test/assignment1/Test_validate_username.c
+Autogenerating test/unity_runner.c
+[ 33%] Building C object assignment-autotest/CMakeFiles/assignment-autotest.dir/test/assignment1/Test_hello.c.o
+[ 41%] Building C object assignment-autotest/CMakeFiles/assignment-autotest.dir/test/assignment1/Test_assignment_validate.c.o
+[ 50%] Building C object assignment-autotest/CMakeFiles/assignment-autotest.dir/__/student-test/assignment1/Test_validate_username.c.o
+[ 58%] Building C object assignment-autotest/CMakeFiles/assignment-autotest.dir/test/assignment1/Test_hello_Runner.c.o
+[ 66%] Building C object assignment-autotest/CMakeFiles/assignment-autotest.dir/test/assignment1/Test_assignment_validate_Runner.c.o
+[ 75%] Building C object assignment-autotest/CMakeFiles/assignment-autotest.dir/__/student-test/assignment1/Test_validate_username_Runner.c.o
+[ 83%] Building C object assignment-autotest/CMakeFiles/assignment-autotest.dir/__/examples/autotest-validate/autotest-validate.c.o
+[ 91%] Building C object assignment-autotest/CMakeFiles/assignment-autotest.dir/test/unity_runner.c.o
+[100%] Linking C executable assignment-autotest
+[100%] Built target assignment-autotest
+/home/vidhya/aesd/assignment-1-vidhyapalaniappan/assignment-autotest/test/assignment1/Test_hello.c:6:test_hello:INFO: Hello!  Your unity setup is working!
+/home/vidhya/aesd/assignment-1-vidhyapalaniappan/assignment-autotest/test/assignment1/Test_hello.c:4:test_hello:PASS
+
+-----------------------
+1 Tests 0 Failures 0 Ignored 
+OK
+/home/vidhya/aesd/assignment-1-vidhyapalaniappan/assignment-autotest/test/assignment1/Test_assignment_validate.c:9:test_assignment_validate:PASS
+
+-----------------------
+1 Tests 0 Failures 0 Ignored 
+OK
+Read vidhyapalaniappan from conf/username.txt
+/home/vidhya/aesd/assignment-1-vidhyapalaniappan/assignment-autotest/../student-test/assignment1/Test_validate_username.c:15:test_validate_my_username:PASS
+
+-----------------------
+1 Tests 0 Failures 0 Ignored 
+OK
+Executing assignment test script
+~/aesd/assignment-1-vidhyapalaniappan/assignment-autotest/test/assignment1 ~/aesd/assignment-1-vidhyapalaniappan
+~/aesd/assignment-1-vidhyapalaniappan/finder-app ~/aesd/assignment-1-vidhyapalaniappan/assignment-autotest/test/assignment1 ~/aesd/assignment-1-vidhyapalaniappan
+Hello World
+Two parameters are NOT passed
+Hello World
+Two parameters are NOT passed
+Using default value AELD_IS_FUN for string to write
+Using default value 10 for number of files to write
+Writing 10 files containing string AELD_IS_FUN to /tmp/aeld-data
+Hello World
+Two parameters are passed.
+arg_1 is /tmp/aeld-data/vidhyapalaniappan1.txt
+arg_2 is AELD_IS_FUN
+The given path is not a valid file directory, so new directory created
+file doesnt exist, creating file
+file created successfully
+Hello World
+Two parameters are passed.
+arg_1 is /tmp/aeld-data/vidhyapalaniappan2.txt
+arg_2 is AELD_IS_FUN
+file doesnt exist, creating file
+file created successfully
+Hello World
+Two parameters are passed.
+arg_1 is /tmp/aeld-data/vidhyapalaniappan3.txt
+arg_2 is AELD_IS_FUN
+file doesnt exist, creating file
+file created successfully
+Hello World
+Two parameters are passed.
+arg_1 is /tmp/aeld-data/vidhyapalaniappan4.txt
+arg_2 is AELD_IS_FUN
+file doesnt exist, creating file
+file created successfully
+Hello World
+Two parameters are passed.
+arg_1 is /tmp/aeld-data/vidhyapalaniappan5.txt
+arg_2 is AELD_IS_FUN
+file doesnt exist, creating file
+file created successfully
+Hello World
+Two parameters are passed.
+arg_1 is /tmp/aeld-data/vidhyapalaniappan6.txt
+arg_2 is AELD_IS_FUN
+file doesnt exist, creating file
+file created successfully
+Hello World
+Two parameters are passed.
+arg_1 is /tmp/aeld-data/vidhyapalaniappan7.txt
+arg_2 is AELD_IS_FUN
+file doesnt exist, creating file
+file created successfully
+Hello World
+Two parameters are passed.
+arg_1 is /tmp/aeld-data/vidhyapalaniappan8.txt
+arg_2 is AELD_IS_FUN
+file doesnt exist, creating file
+file created successfully
+Hello World
+Two parameters are passed.
+arg_1 is /tmp/aeld-data/vidhyapalaniappan9.txt
+arg_2 is AELD_IS_FUN
+file doesnt exist, creating file
+file created successfully
+Hello World
+Two parameters are passed.
+arg_1 is /tmp/aeld-data/vidhyapalaniappan10.txt
+arg_2 is AELD_IS_FUN
+file doesnt exist, creating file
+file created successfully
+Hello World Two parameters are passed. arg_1 is /tmp/aeld-data arg_2 is AELD_IS_FUN The number of files are 10 and the number of matching lines are 10
+success
+Writing 10 files containing string AELD_IS_FUN to /tmp/aeld-data/7nDJp6jC4cGNyJgq6RorRp0885HEcMVR
+Hello World
+Two parameters are passed.
+arg_1 is /tmp/aeld-data/7nDJp6jC4cGNyJgq6RorRp0885HEcMVR/vidhyapalaniappan1.txt
+arg_2 is AELD_IS_FUN
+The given path is not a valid file directory, so new directory created
+file doesnt exist, creating file
+file created successfully
+Hello World
+Two parameters are passed.
+arg_1 is /tmp/aeld-data/7nDJp6jC4cGNyJgq6RorRp0885HEcMVR/vidhyapalaniappan2.txt
+arg_2 is AELD_IS_FUN
+file doesnt exist, creating file
+file created successfully
+Hello World
+Two parameters are passed.
+arg_1 is /tmp/aeld-data/7nDJp6jC4cGNyJgq6RorRp0885HEcMVR/vidhyapalaniappan3.txt
+arg_2 is AELD_IS_FUN
+file doesnt exist, creating file
+file created successfully
+Hello World
+Two parameters are passed.
+arg_1 is /tmp/aeld-data/7nDJp6jC4cGNyJgq6RorRp0885HEcMVR/vidhyapalaniappan4.txt
+arg_2 is AELD_IS_FUN
+file doesnt exist, creating file
+file created successfully
+Hello World
+Two parameters are passed.
+arg_1 is /tmp/aeld-data/7nDJp6jC4cGNyJgq6RorRp0885HEcMVR/vidhyapalaniappan5.txt
+arg_2 is AELD_IS_FUN
+file doesnt exist, creating file
+file created successfully
+Hello World
+Two parameters are passed.
+arg_1 is /tmp/aeld-data/7nDJp6jC4cGNyJgq6RorRp0885HEcMVR/vidhyapalaniappan6.txt
+arg_2 is AELD_IS_FUN
+file doesnt exist, creating file
+file created successfully
+Hello World
+Two parameters are passed.
+arg_1 is /tmp/aeld-data/7nDJp6jC4cGNyJgq6RorRp0885HEcMVR/vidhyapalaniappan7.txt
+arg_2 is AELD_IS_FUN
+file doesnt exist, creating file
+file created successfully
+Hello World
+Two parameters are passed.
+arg_1 is /tmp/aeld-data/7nDJp6jC4cGNyJgq6RorRp0885HEcMVR/vidhyapalaniappan8.txt
+arg_2 is AELD_IS_FUN
+file doesnt exist, creating file
+file created successfully
+Hello World
+Two parameters are passed.
+arg_1 is /tmp/aeld-data/7nDJp6jC4cGNyJgq6RorRp0885HEcMVR/vidhyapalaniappan9.txt
+arg_2 is AELD_IS_FUN
+file doesnt exist, creating file
+file created successfully
+Hello World
+Two parameters are passed.
+arg_1 is /tmp/aeld-data/7nDJp6jC4cGNyJgq6RorRp0885HEcMVR/vidhyapalaniappan10.txt
+arg_2 is AELD_IS_FUN
+file doesnt exist, creating file
+file created successfully
+Hello World Two parameters are passed. arg_1 is /tmp/aeld-data/7nDJp6jC4cGNyJgq6RorRp0885HEcMVR arg_2 is AELD_IS_FUN The number of files are 10 and the number of matching lines are 10
+success
+Test of assignment assignment1 complete with success
