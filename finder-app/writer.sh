@@ -15,7 +15,7 @@ arg_2=$2
 echo "arg_1 is $arg_1"
 echo "arg_2 is $arg_2"
 
-#exctract name of file.
+#exctract name of file
 name_file="${arg_1##*/}"
 #extract name of directory
 name_directory="${arg_1%/*}"
