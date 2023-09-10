@@ -31,7 +31,7 @@ int main(int argc, char *argv[])
 {
     openlog(NULL, 0, LOG_USER);   // Initializing syslog
      
-    if (argc != 2)   //Checking if the correct number of command-line arguments is provided
+    if (argc != 3)   //Checking if the correct number of command-line arguments is provided
     {
         fprintf(stderr, "Usage: %s <file_path> <write_string>\n", argv[0]);
         syslog(LOG_ERR, "Error : Exactly two arguments are not passed \n");
