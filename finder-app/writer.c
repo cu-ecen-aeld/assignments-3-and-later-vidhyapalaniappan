@@ -33,7 +33,6 @@ int main(int argc, char *argv[])
      
     if (argc != 3)   //Checking if the correct number of command-line arguments is provided
     {
-        fprintf(stderr, "Usage: %s <file_path> <write_string>\n", argv[0]);
         syslog(LOG_ERR, "Error : Exactly two arguments are not passed \n");
         syslog(LOG_ERR, "Usage : %s <file_path> <write_string>\n", argv[0]);
         return 1;   //Exiting the program with an error code
