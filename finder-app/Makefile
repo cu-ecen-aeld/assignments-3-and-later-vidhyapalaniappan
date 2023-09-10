@@ -13,7 +13,7 @@ TARGET = writer
 writer: writer.o
 	$(CC) $(CFLAGS) -o writer writer.o
 
-# Rule to remove object files and the 'writer' executable and all object files	
+# Rule to remove object files and the 'writer' executable	
 clean:
 	rm -f *.o $(TARGET)
 
