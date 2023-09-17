@@ -125,13 +125,13 @@ cp -f ${FINDER_APP_DIR}/finder.sh ${OUTDIR}/rootfs/home
 cp -f ${FINDER_APP_DIR}/finder-test.sh ${OUTDIR}/rootfs/home
 cp -f ${FINDER_APP_DIR}/writer ${OUTDIR}/rootfs/home
 cp -f ${FINDER_APP_DIR}/writer.c ${OUTDIR}/rootfs/home
-cp -f ${FINDER_APP_DIR}/username.txt ${OUTDIR}/rootfs/home
+cp -f ${FINDER_APP_DIR}/conf/username.txt ${OUTDIR}/rootfs/home
 
 # TODO: Chown the root directory
 cd ${OUTDIR}/rootfs
 sudo chown -R root:root *
 # TODO: Create initramfs.cpio.gz
-cd rootfs
+#cd rootfs
 #find . | cpio -H newc -ov --owner root:root | gzip -9 > ../initramfs.cpio.gz
 find . | cpio -H newc -ov --owner root:root > ${OUTDIR}/initramfs.cpio
 cd ..
