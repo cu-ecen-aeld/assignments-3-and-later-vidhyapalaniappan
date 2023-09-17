@@ -33,6 +33,7 @@ if [ ! -e ${OUTDIR}/linux-stable/arch/${ARCH}/boot/Image ]; then
     cd linux-stable
     echo "Checking out version ${KERNEL_VERSION}"
     git checkout ${KERNEL_VERSION}
+    git apply /home/vidhya/Downloads/dtc-multiple-definition.patch
 
     # TODO: Add your kernel build steps here
     make ARCH=${ARCH} CROSS_COMPILE=${CROSS_COMPILE} mrproper
@@ -77,7 +78,7 @@ else
 fi
 
 # TODO: Make and install busybox
-#make ARCH=${ARCH} CROSS_COMPILE=${CROSS_COMPILE}
+#make ARCH=${ARCH} CROSS_COMPILE=${CROSS_COMPILE}https://github.com/cu-ecen-aeld/assignments-3-and-later-vidhyapalaniappan
 make -j4 CONFIG_PREFIX=${OUTDIR}/rootfs ARCH=${ARCH} CROSS_COMPILE=${CROSS_COMPILE} install
 cd ${OUTDIR}/rootfs
 
@@ -124,6 +125,7 @@ cp -f ${FINDER_APP_DIR}/finder.sh ${OUTDIR}/rootfs/home
 cp -f ${FINDER_APP_DIR}/finder-test.sh ${OUTDIR}/rootfs/home
 cp -f ${FINDER_APP_DIR}/writer ${OUTDIR}/rootfs/home
 cp -f ${FINDER_APP_DIR}/writer.c ${OUTDIR}/rootfs/home
+cp -f ${FINDER_APP_DIR}/username.txt ${OUTDIR}/rootfs/home
 
 # TODO: Chown the root directory
 cd ${OUTDIR}/rootfs
