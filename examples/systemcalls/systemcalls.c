@@ -19,7 +19,6 @@
 #include <syslog.h>
 
 #include "systemcalls.h"
-
 /**
  * @param cmd the command to execute with system()
  * @return true if the command in @param cmd was executed
