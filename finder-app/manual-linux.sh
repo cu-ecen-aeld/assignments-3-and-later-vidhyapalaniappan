@@ -93,7 +93,7 @@ ${CROSS_COMPILE}readelf -a bin/busybox | grep "program interpreter"
 ${CROSS_COMPILE}readelf -a bin/busybox | grep "Shared library"
 
 # TODO: Add library dependencies to rootfs
-#obtain from  ChatGPT at https://chat.openai.com/ with prompts including "Add library dependencies to rootfs"
+#obtained from  ChatGPT at https://chat.openai.com/ with prompts including "Add library dependencies to rootfs"
 echo Adding library dependencies to rootfs
 SYSROOT=$(${CROSS_COMPILE}gcc -print-sysroot)
 echo "${SYSROOT}"
@@ -111,7 +111,6 @@ sudo mknod -m 600 dev/console c 5 1
 
 # TODO: Clean and build the writer utility
 echo Cleaning and building the writer utility
-#cd "$FINDER_APP_DIR/writer"
 cd ${FINDER_APP_DIR}
 make clean
 make CROSS_COMPILE=${CROSS_COMPILE}
