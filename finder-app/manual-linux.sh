@@ -125,6 +125,7 @@ cp -f ${FINDER_APP_DIR}/conf/ -r ${OUTDIR}/rootfs/home
 cp -f ${FINDER_APP_DIR}/finder-test.sh ${OUTDIR}/rootfs/home
 cp -f ${FINDER_APP_DIR}/writer ${OUTDIR}/rootfs/home
 cp -f ${FINDER_APP_DIR}/writer.c ${OUTDIR}/rootfs/home
+cp -f ${FINDER_APP_DIR}/writer.sh ${OUTDIR}/rootfs/home
 cp -f ${FINDER_APP_DIR}/conf/assignment.txt ${OUTDIR}/rootfs/home
 
 # TODO: Chown the root directory
