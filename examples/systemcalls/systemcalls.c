@@ -172,7 +172,7 @@ bool do_exec_redirect(const char *outputfile, int count, ...)
 */
     openlog("do_exec_redirect function", 0, LOG_USER);
     
-    int outputfile_fd = open(outputfile, O_WRONLY|O_TRUNC|O_CREAT, 0644);
+    int outputfile_fd = open(outputfile, O_WRONLY|O_TRUNC|O_CREAT, 0644); //opening the output file
     if (outputfile_fd == -1) 
     {
         perror("Opening output file failed");
