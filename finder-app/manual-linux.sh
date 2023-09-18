@@ -131,7 +131,6 @@ cp -f ${FINDER_APP_DIR}/conf/username.txt ${OUTDIR}/rootfs/home
 cd ${OUTDIR}/rootfs
 sudo chown -R root:root *
 # TODO: Create initramfs.cpio.gz
-#cd rootfs
 #find . | cpio -H newc -ov --owner root:root | gzip -9 > ../initramfs.cpio.gz
 find . | cpio -H newc -ov --owner root:root > ${OUTDIR}/initramfs.cpio
 cd ..
