@@ -24,7 +24,6 @@ else
 fi
 
 mkdir -p ${OUTDIR}
-
 #Checking if directory creation failed
 if [ ! -d ${OUTDIR}]; then
    	echo Output directory does not exist
