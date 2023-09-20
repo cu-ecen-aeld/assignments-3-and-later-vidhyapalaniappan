@@ -1,3 +1,23 @@
+/********************************************************************************************************************************************************
+ File name: systemcalls.c
+ 
+ File​ ​modified by: Vidhya. PL
+ 
+ Date : 09/17/2023
+ 
+ Reference : do_exec() : reference taken from ChatGPT at https://chat.openai.com/ with prompts including 
+ 	     Syslog syntax : ChatGPT at https://chat.openai.com/ with prompts including 
+ 	     "Complete the TODO for do_exec() function"
+ 	     do_exec_redirect() : https://stackoverflow.com/a/13784315/1446624
+ ********************************************************************************************************************************************************/
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <sys/wait.h>
+#include <fcntl.h>
+#include <unistd.h>
+#include <syslog.h>
+
 #include "systemcalls.h"
 
 /**
@@ -16,7 +36,22 @@ bool do_system(const char *cmd)
  *   and return a boolean true if the system() call completed with success
  *   or false() if it returned a failure
 */
-
+    openlog("do_system function", 0, LOG_USER);
+    
+    int sys_return = system(cmd);    //Calling the system() function with command set in cmd
+    
+    if(sys_return == 0 )             //Checking for return value of system function.
+    {
+        syslog(LOG_DEBUG, "Successfully completed system(cmd)");
+    	return true;
+    }
+    
+    else
+    {
+    	return false;
+    	syslog(LOG_ERR, "Error : system(cmd) failed \n");
+    }
+    closelog();
     return true;
 }
 
@@ -29,7 +64,7 @@ bool do_system(const char *cmd)
 *   The first is always the full path to the command to execute with execv()
 *   The remaining arguments are a list of arguments to pass to the command in execv()
 * @return true if the command @param ... with arguments @param arguments were executed successfully
-*   using the execv() call, false if an error occurred, either in invocation of the
+*   using the execv() call, fado_execlse if an error occurred, either in invocation of the
 *   fork, waitpid, or execv() command, or if a non-zero return value was returned
 *   by the command issued in @param arguments with the specified arguments.
 */
@@ -58,9 +93,52 @@ bool do_exec(int count, ...)
  *   as second argument to the execv() command.
  *
 */
-
+    openlog("do_exec function", 0, LOG_USER);
+    
+    pid_t pid = fork();    //calling the fork function
+    
+    if (pid == -1)         //checking for return value of fork()
+    {
+     	syslog(LOG_ERR, "Error : fork() failed \n");
+        perror("fork failed");
+        va_end(args);
+        closelog();
+        return false;
+    } 
+    
+    else if (pid == 0) // Child process is created
+    { 
+        syslog(LOG_DEBUG, "Successfully created child process");
+        execv(command[0], command);
+    	perror("execvp"); 
+   	syslog(LOG_ERR, "Error : execvp failed \n");
+        closelog();
+        exit(EXIT_FAILURE);
+    } 
+    
+    else // Parent process
+    { 
+    	syslog(LOG_DEBUG, "Parent process is running");
+        int status;
+        waitpid(pid, &status, 0); 
+        
+        if (WIFEXITED(status) && WEXITSTATUS(status) == 0) 
+        {
+            syslog(LOG_DEBUG, "Successfully completion of wait");
+            va_end(args);
+            closelog();
+            return true;
+         } 
+         
+         else 
+         {
+            syslog(LOG_ERR, "Error : wait failed \n");
+            va_end(args);
+            closelog();
+            return false;
+         }
+    }    
     va_end(args);
-
     return true;
 }
 
@@ -81,7 +159,7 @@ bool do_exec_redirect(const char *outputfile, int count, ...)
     }
     command[count] = NULL;
     // this line is to avoid a compile warning before your implementation is complete
-    // and may be removed
+    // and may be removedhttps://stackoverflow.com/a/13784315/1446624
     command[count] = command[count];
 
 
@@ -92,8 +170,69 @@ bool do_exec_redirect(const char *outputfile, int count, ...)
  *   The rest of the behaviour is same as do_exec()
  *
 */
-
+    openlog("do_exec_redirect function", 0, LOG_USER);
+    
+    int outputfile_fd = open(outputfile, O_WRONLY|O_TRUNC|O_CREAT, 0644); //opening the output file
+    if (outputfile_fd == -1) 
+    {
+        perror("Opening output file failed");
+        syslog(LOG_ERR, "Error : failed to open output fail \n");
+        va_end(args);
+        closelog();
+        return false;
+    }
+    
+    pid_t pid = fork();  //creating a fork
+    
+    if (pid == -1) 
+    {
+        syslog(LOG_ERR, "Error : fork() failed \n");
+        perror("Fork failed");
+        va_end(args);
+        closelog();
+        return false;
+    }
+    
+    else if (pid == 0) // Child process
+    {  
+    	if (dup2(outputfile_fd, 1) < 0)     // Redirect standard output to the output file
+    	{ 
+    	     syslog(LOG_DEBUG, "Successfully created child process");   
+    	     perror("dup2"); 
+    	     closelog();
+    	     exit(EXIT_FAILURE);    		
+    	}
+    	
+    close(outputfile_fd);
+    execvp(command[0], command); 
+    perror("execvp"); 
+    syslog(LOG_ERR, "Error : execvp failed \n");
+    exit(EXIT_FAILURE);   
+    }
+    
+    else
+    {
+    	syslog(LOG_DEBUG, "Parent process is running");
+    	int status;
+        waitpid(pid, &status, 0);
+        close(outputfile_fd);
+        if (WIFEXITED(status) && WEXITSTATUS(status) == 0) 
+        {
+            va_end(args);
+            syslog(LOG_DEBUG, "Successfully completion of wait");
+            closelog();
+            return true;
+        } 
+        
+        else 
+        {
+            syslog(LOG_ERR, "Error : wait failed \n");
+            va_end(args);
+            closelog();
+            return false;
+        }
+    }
+    
     va_end(args);
-
     return true;
 }
