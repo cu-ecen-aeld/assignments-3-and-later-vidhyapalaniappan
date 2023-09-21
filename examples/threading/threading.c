@@ -86,7 +86,7 @@ bool start_thread_obtaining_mutex(pthread_t *thread, pthread_mutex_t *mutex,int 
         free(data);
         return false;
     }
-    DEBUG_LOG("Thread started successfully.");
+   // DEBUG_LOG("Thread started successfully.");
     
        return true; // Thread started successfully.
 }
