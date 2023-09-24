@@ -9,6 +9,8 @@ CFLAGS= -Wall -Werror
 # Defining the target executable file name.
 TARGET = writer 
 
+all: $(TARGET)
+
 # Rule to build the 'writer' executable. It depends on 'writer.o'.
 writer: writer.o
 	$(CC) $(CFLAGS) -o writer writer.o
