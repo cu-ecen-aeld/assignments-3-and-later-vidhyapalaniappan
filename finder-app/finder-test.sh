@@ -61,8 +61,6 @@ done
 OUTPUTSTRING=$(./finder.sh "$WRITEDIR" "$WRITESTR")
 echo "$OUTPUTSTRING" > /tmp/assignment4-result.txt
 
-scp /tmp/assignment4-result.txt /home/vipa4058/aesd/assignments-3-and-later-vidhyapalaniappan/assignments/assignment4
-
 # remove temporary directories
 rm -rf /tmp/aeld-data
 
