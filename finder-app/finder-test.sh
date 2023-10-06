@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/shssh vipa4058@aesd-students.colorado.edu
 # Tester script for assignment 1 and assignment 2
 # Author: Siddhant Jajoo
 
@@ -8,6 +8,8 @@ set -u
 NUMFILES=10
 WRITESTR=AELD_IS_FUN
 WRITEDIR=/tmp/aeld-data
+
+#A4 - part 2 : "placing the conf files at /etc/finder-app/conf"
 username=$(cat ../../etc/finder-app/conf/username.txt)
 
 if [ $# -lt 3 ]
@@ -32,11 +34,12 @@ echo "Writing ${NUMFILES} files containing string ${WRITESTR} to ${WRITEDIR}"
 rm -rf "${WRITEDIR}"
 
 # create $WRITEDIR if not assignment1
+#A4 - part 2 : "placing the conf files at /etc/finder-app/conf"
 assignment=`cat ../../etc/finder-app/conf/assignment.txt`
 
 if [ $assignment != 'assignment1' ]
 then
-	mkdir -p "$WRITEDIR"
+ssh vipa4058@aesd-students.colorado.edu	mkdir -p "$WRITEDIR"
 
 	#The WRITEDIR is in quotes because if the directory path consists of spaces, then variable substitution will consider it as multiple argument.
 	#The quotes signify that the entire string in WRITEDIR is a single string.
@@ -59,6 +62,8 @@ do
 done
 
 OUTPUTSTRING=$(./finder.sh "$WRITEDIR" "$WRITESTR")
+
+#A4 - part 2 : "writing the output of finder command to /tmp/assignment4-result.txt
 echo "$OUTPUTSTRING" > /tmp/assignment4-result.txt
 
 # remove temporary directories
