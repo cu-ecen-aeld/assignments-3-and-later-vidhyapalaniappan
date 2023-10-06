@@ -85,6 +85,7 @@ int main() {
                 break;
             }
         }
+	buffer[bytes_received] = '\0';
 	syslog(LOG_INFO, "plv: Received data from %s: %.*s", client_ip, (int)bytes_received, buffer);
 
         close(data_fd);
@@ -95,7 +96,10 @@ int main() {
 
         while ((bytes_read = read(data_fd, buffer, sizeof(buffer))) > 0) {
             send(client_fd, buffer, bytes_read, 0);
-            syslog(LOG_INFO, "plv : Sent data to %s: %.*s", client_ip, (int)bytes_read, buffer);
+           
+            buffer[bytes_read] = '\0';
+	    syslog(LOG_INFO, "plv : Sent data to %s: %s", client_ip, buffer);
+	    //syslog(LOG_INFO, "plv : Sent data to %s: %.*s", client_ip, (int)bytes_read, buffer);
 	}
 
         close(data_fd);
