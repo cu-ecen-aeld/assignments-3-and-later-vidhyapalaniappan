@@ -108,7 +108,6 @@ static int daemon_func() {
     if (sockfd == -1) 
     {
     	syslog(LOG_ERR, "Error binding to port %d", PORT);
-    	exit_func();
     	return ERROR_SOCKET_BIND;
     }
     
