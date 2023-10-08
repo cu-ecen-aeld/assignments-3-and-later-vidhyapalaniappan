@@ -1,7 +1,7 @@
 #!/bin/sh
 
 # Path to your aesdsocket executable
-AESDSOCKET_EXEC=/path/to/your/aesdsocket
+AESDSOCKET_EXEC=/usr/bin/aesdsocket
 
 # Check if the executable exists
 if [ ! -x "$AESDSOCKET_EXEC" ]; then
