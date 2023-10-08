@@ -349,7 +349,7 @@ static void handle_client_connection(int client_fd)
         }
     }
 
-    syslog(LOG_INFO, "Received data from %s: %s, %d", client_ip, buffer, (int)bytes_received);
+    //syslog(LOG_INFO, "Received data from %s: %s, %d", client_ip, buffer, (int)bytes_received);
 
     close(data_fd);
 
