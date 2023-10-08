@@ -104,11 +104,19 @@ static void signal_handler(int signo) {
 
 static int daemon_func() {
 
+    int sockfd = setup_socket();  //attempting to bind to port 9000 before forking into a daemon
+    if (sockfd == -1) 
+    {
+    	syslog(LOG_ERR, "Error binding to port %d", PORT);
+    	exit_func();
+    	return ERROR_SOCKET_BIND;
+    }
+    
     pid_t pid = fork();
     if (pid < 1) {
         perror("fork");
         return -1;
-    } else if (pid != 0) {
+    } else if (pid > 0) {
         exit(EXIT_SUCCESS);
     }
     
