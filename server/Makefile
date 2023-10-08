@@ -4,7 +4,7 @@
 CC=$(CROSS_COMPILE)gcc
 
 # Defining compilation flags. -Wall: enable all warning messages. -Werror: treat warnings as errors.
-CFLAGS= -Wall -Werror
+CFLAGS= -Wall -Werror -g
 
 # Defining the target executable file name.
 TARGET = aesdsocket 

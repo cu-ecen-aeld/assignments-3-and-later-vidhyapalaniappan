@@ -1,3 +1,17 @@
+/********************************************************************************************************************************************************
+ File name: aesdsocket.c
+ ​Description: A socket program for server in stream mode
+ File​ ​Author​ ​Name: Vidhya. PL
+ Date : 10/08/2023
+ Reference : https://beej.us/guide/bgnet/html/#getaddrinfoprepare-to-launch 
+             https://www.thegeekstuff.com/2012/02/c-daemon-process/
+             Binding function: ChatGPT at https://chat.openai.com/ with prompts including 
+             "Binding function for server using sockaddr_in"
+ **********************************************************************************************************************************************************
+*/
+
+
+/*Including necessary header files*/
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -9,20 +23,22 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <fcntl.h>
+#include <sys/types.h>
 
+/*Defining MACROS*/
 #define PORT 9000
 #define DATA_FILE "/var/tmp/aesdsocketdata"
 #define BUFFER_SIZE 1024
 #define MAX_BACKLOG 5
 #define MAX_IP_LEN INET_ADDRSTRLEN
 
-// Error Codes
-#define ERROR_SOCKET_CREATE -1
+/*Defining ERROR codes*/
+#define ERROR_SOCKET_CREATE  -1
 #define ERROR_SOCKET_OPTIONS -2
-#define ERROR_SOCKET_BIND   -3
-#define ERROR_LISTEN        -4
-#define ERROR_FILE_OPEN     -5
-#define ERROR_MEMORY_ALLOC  -6
+#define ERROR_SOCKET_BIND    -3
+#define ERROR_LISTEN         -4
+#define ERROR_FILE_OPEN      -5
+#define ERROR_MEMORY_ALLOC   -6
 
 // File Permissions
 #define FILE_PERMISSIONS 0644
@@ -30,51 +46,70 @@
 int sockfd;
 int client_fd;
 
-volatile sig_atomic_t exit_flag = 0;
 
-// Function prototypes
-static void sig_handler(int signo);
-static int daemon_create();
-static void cleanup();
+/* Function prototypes */
+static void signal_handler(int signo);
+static int daemon_func();
+static void exit_func();
 static int setup_socket();
 static void handle_client_connection(int client_fd);
 
-int main(int argc, char **argv) {
-    openlog("aesdsocket", LOG_PID | LOG_NDELAY, LOG_DAEMON);
+
+/*----------------------------------------------------------------------------
+ int main(int argc, char **argv)
+ *@brief : Main function
+ *
+ *Parameters : argc, argv
+ *
+ *Return : 0 on completion
+ *
+ *----------------------------------------------------------------------------*/
+int main(int argc, char **argv) 
+{
+    openlog(NULL, 0, LOG_USER);
     syslog(LOG_INFO, "Starting aesdsocket");
 
-    int daemon_fg = 0;
+    int daemon_set = 0; //Variable used to determine whether the program should run as a daemon.
 
-    if (argc > 1 && strcmp(argv[1], "-d") == 0) {
-        daemon_fg = 1;
-    } else {
-        printf("Invalid argument to process daemon\n");
-        syslog(LOG_ERR, "Invalid argument to process daemon");
+    //checking if -d argument is given for daemon. If given, setting the daemon flag
+    if (argc > 1 && strcmp(argv[1], "-d") == 0) 
+    {
+        daemon_set = 1;
+    } 
+    else 
+    {
+        syslog(LOG_ERR, "-d is not passed for daemon");
     }
 
-    signal(SIGINT, sig_handler);
-    signal(SIGTERM, sig_handler);
-
-    if (daemon_fg) {
-        if (daemon_create() == -1) {
-            syslog(LOG_ERR, "Error creating Daemon");
-        } else {
-            syslog(LOG_DEBUG, "Daemon created successfully");
+    //If daemon flag is set, call the daemon function
+    if (daemon_set) 
+    {
+        if (daemon_func() == -1) 
+        {
+            syslog(LOG_ERR, "Failed to create Daemon");
+        } else 
+        {
+            syslog(LOG_DEBUG, "Successfully created Daemon");
         }
     }
 
-    sockfd = setup_socket();
+    //Checking for SIGTERM and SIGINT signals and calling the signal handler function
+    signal(SIGINT, signal_handler);
+    signal(SIGTERM, signal_handler);
+
+    sockfd = setup_socket();  //Creating a socket
     if (sockfd == -1) {
-        cleanup();
+        exit_func();
         return ERROR_SOCKET_CREATE;
     }
 
     syslog(LOG_INFO, "Server is listening on port %d", PORT);
 
-    while (1) {
+    while (1) 
+    {
         struct sockaddr_in client_addr;
         socklen_t client_len = sizeof(client_addr);
-        client_fd = accept(sockfd, (struct sockaddr *)&client_addr, &client_len);
+        client_fd = accept(sockfd, (struct sockaddr *)&client_addr, &client_len);  //continuously accepting incoming client connections 
         if (client_fd == -1) {
             perror("accept");
             syslog(LOG_ERR, "Error accepting client connection: %m");
@@ -84,75 +119,149 @@ int main(int argc, char **argv) {
         handle_client_connection(client_fd);
     }
 
-    cleanup();
+    exit_func(); //perform cleanup tasks
     return 0;
 }
 
-static void sig_handler(int signo) {
-    if (signo == SIGINT || signo == SIGTERM) {
+
+/*----------------------------------------------------------------------------
+static void signal_handler(int signo) 
+ *@brief : Function to handle the incomming signals
+ *
+ *Parameters : signal number that triggered the signal handler
+ *
+ *Return : none
+ *
+ *----------------------------------------------------------------------------*/
+static void signal_handler(int signo) 
+{
+    if (signo == SIGINT || signo == SIGTERM)           //Checking Received signal is SIGINT or SIGTERM
+    {
         syslog(LOG_INFO, "Caught signal, exiting");
-        if (unlink(DATA_FILE) == -1) {
+        if (unlink(DATA_FILE) == -1)                   // Delete file path
+        { 
             syslog(LOG_ERR, "Error removing data file: %m");
         }
         close(sockfd);
         close(client_fd);
-        exit_flag = 1;
+        closelog();
         exit(1);
     }
 }
 
-static int daemon_create() {
-    pid_t pid = fork();
-    if (pid == -1) {
-        perror("fork");
-        return -1;
-    } else if (pid != 0) {
-        exit(EXIT_SUCCESS);
-    }
-    
-    if (setsid() == -1) {
-        perror("setsid");
-        return -1;
-    }
 
-    if (chdir("/") == -1) {
-        perror("chdir");
-        return -1;
-    }
+/*----------------------------------------------------------------------------
+static int daemon_func() 
+ *@brief : Function to create a daemon process
+ *
+ *Parameters : none
+ *
+ *Return : 0
+ *
+ *----------------------------------------------------------------------------*/
+static int daemon_func() 
+{
+ 	int sockfd = setup_socket();  //attempting to bind to port 9000 before forking into a daemon
+        if (sockfd == -1) 
+        {
+            syslog(LOG_ERR, "Error binding to port %d", PORT);
+            exit_func();
+            return ERROR_SOCKET_BIND;
+        }
 
-    int devnull = open("/dev/null", O_RDWR);
-    if (devnull == -1) {
-        perror("open");
-        return -1;
-    }
-    
-    dup2(devnull, STDIN_FILENO);
-    dup2(devnull, STDOUT_FILENO);
-    dup2(devnull, STDERR_FILENO);
-    
-    close(devnull);
+        // Create child process
+        pid_t process_id = fork();  //creating a child process by calling the fork function.
 
+        // Indication of fork() failure
+        if (process_id < 0) 
+        {
+            perror("fork");
+            syslog(LOG_ERR, "Error forking: %m");
+            exit_func();
+            return -1;
+        }
+
+        // PARENT PROCESS. Need to kill it.
+        if (process_id > 0) 
+        {
+            printf("process_id of child process %d \n", process_id);
+            syslog(LOG_DEBUG, "Daemon created successfully");
+            exit_func();
+            exit(EXIT_SUCCESS);
+        }
+
+        // Set new session
+        pid_t sid = setsid();    //creating a new session for the child process using the setsid function.
+        if (sid < 0) 
+        {
+            perror("setsid");
+            syslog(LOG_ERR, "Error creating daemon session: %m");
+            exit_func();
+            return -1;
+        }
+
+        // Change the current working directory to root.
+        if (chdir("/") == -1)      //changing the current working directory of the child process to the root directory 
+        {
+            perror("chdir");
+            syslog(LOG_ERR, "Error changing working directory: %m");
+            exit_func();
+            return -1;
+        }
+
+        // closing the standard input (0), standard output (1), and standard error (2) file descriptors for the daemon process.
+        close(STDIN_FILENO);
+        close(STDOUT_FILENO);
+        close(STDERR_FILENO);
+        
     return 0;
 }
 
-static void cleanup() {
+
+/*----------------------------------------------------------------------------
+static void exit_func()
+ *@brief : Function to perform clean up operations
+ *
+ *Parameters : none
+ *
+ *Return : none
+ *
+ *----------------------------------------------------------------------------*/
+static void exit_func() 
+{
     close(sockfd);
     if (unlink(DATA_FILE) == -1) {
         syslog(LOG_ERR, "Error removing data file: %m");
     }
+    close(client_fd);
     closelog();
 }
 
-static int setup_socket() {
-    int sockfd = socket(AF_INET, SOCK_STREAM, 0);
-    if (sockfd == -1) {
+
+/*----------------------------------------------------------------------------
+static int setup_socket() 
+ *@brief : Function to create socket, bind and listen
+ *
+ *Parameters : none
+ *
+ *Return : sockfd
+ *
+ *----------------------------------------------------------------------------*/
+static int setup_socket() 
+{
+    int sockfd = socket(AF_INET, SOCK_STREAM, 0);  //creating a socket using the socket function.
+    if (sockfd == -1) 
+    {
         perror("socket");
         syslog(LOG_ERR, "Error creating socket: %m");
         return ERROR_SOCKET_CREATE;
     }
 
     int yes = 1;
-    if (setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(yes)) == -1) {
+    // setting a socket option called SO_REUSEADDR on the socket to allow reuse of the socket address
+    // useful for cases where the server needs to restart and bind to the same port quickly
+    if (setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(yes)) == -1) 
+    {
         perror("setsockopt");
         syslog(LOG_ERR, "Error setting socket options: %m");
         close(sockfd);
@@ -161,18 +270,20 @@ static int setup_socket() {
 
     struct sockaddr_in server_addr;
     memset(&server_addr, 0, sizeof(server_addr));
-    server_addr.sin_family = AF_INET;
-    server_addr.sin_port = htons(PORT);
-    server_addr.sin_addr.s_addr = INADDR_ANY;
+    server_addr.sin_family = AF_INET;         //IPv4
+    server_addr.sin_port = htons(PORT);       //setting the port to the desired port number
+    server_addr.sin_addr.s_addr = INADDR_ANY; //binds the socket to any available network interface 
 
-    if (bind(sockfd, (struct sockaddr *)&server_addr, sizeof(server_addr)) == -1) {
+    if (bind(sockfd, (struct sockaddr *)&server_addr, sizeof(server_addr)) == -1)     //binding the socket to the specified address and port using the bind function
+    {
         perror("bind");
         syslog(LOG_ERR, "Error binding socket: %m");
         close(sockfd);
         return ERROR_SOCKET_BIND;
     }
 
-    if (listen(sockfd, MAX_BACKLOG) == -1) {
+    if (listen(sockfd, MAX_BACKLOG) == -1)    //setting the socket to the listening state using the listen function
+    {
         perror("listen");
         syslog(LOG_ERR, "Error listening on socket: %m");
         close(sockfd);
@@ -182,27 +293,43 @@ static int setup_socket() {
     return sockfd;
 }
 
-static void handle_client_connection(int client_fd) {
-    char client_ip[MAX_IP_LEN];
-    struct sockaddr_in client_addr;
+
+/*----------------------------------------------------------------------------
+static void handle_client_connection(int client_fd) 
+ *@brief : Function to receive and send data from and to the client
+ *
+ *Parameters : client_fd
+ *
+ *Return : none
+ *
+ *----------------------------------------------------------------------------*/
+static void handle_client_connection(int client_fd) 
+{
+    char client_ip[MAX_IP_LEN];                   //to store information about the client's IP address. 
+    struct sockaddr_in client_addr;               //structure to hold client socket address information
     socklen_t client_len = sizeof(client_addr);
 
-    getpeername(client_fd, (struct sockaddr *)&client_addr, &client_len);
+    getpeername(client_fd, (struct sockaddr *)&client_addr, &client_len);  //retrieve the IP address of the connected client
+    
+    //extracting the client's IP address from the client_addr structure and converting it from binary form to a string using inet_ntop.
     inet_ntop(AF_INET, &(client_addr.sin_addr), client_ip, MAX_IP_LEN);
 
     syslog(LOG_INFO, "Accepted connection from %s", client_ip);
 
-    char *buffer = (char *)malloc(sizeof(char) * BUFFER_SIZE);
-    if (buffer == NULL) {
-        printf("Could not allocate memory, exiting ...\n");
+    char *buffer = (char *)malloc(sizeof(char) * BUFFER_SIZE);   //buffer used to read and write data to and from the client
+    if (buffer == NULL) 
+    {
         syslog(LOG_ERR, "Could not allocate memory");
         exit(ERROR_MEMORY_ALLOC);
-    } else {
-        printf("Successfully created buffer\n");
+    } else 
+    {
+        syslog(LOG_ERR, "Successfully created buffer\n");
     }
 
+    //opening a data file (DATA_FILE) in write-only mode with options to create the file if it doesn't exist and to append data to it.
     int data_fd = open(DATA_FILE, O_WRONLY | O_CREAT | O_APPEND, FILE_PERMISSIONS);
-    if (data_fd == -1) {
+    if (data_fd == -1) 
+    {
         perror("open");
         syslog(LOG_ERR, "Error opening data file: %m");
         free(buffer);
@@ -212,9 +339,12 @@ static void handle_client_connection(int client_fd) {
 
     ssize_t bytes_received;
 
-    while ((bytes_received = recv(client_fd, buffer, BUFFER_SIZE, 0)) > 0) {
-        write(data_fd, buffer, bytes_received);
-        if (memchr(buffer, '\n', bytes_received) != NULL) {
+    //reading data from the client socket in chunks of up to BUFFER_SIZE bytes using the recv function.
+    while ((bytes_received = recv(client_fd, buffer, BUFFER_SIZE, 0)) > 0)  
+    {
+        write(data_fd, buffer, bytes_received);           //writing the received data to the data file using the write function.
+        if (memchr(buffer, '\n', bytes_received) != NULL) //checking if the received data contains a newline character 
+        {
             break;
         }
     }
@@ -223,7 +353,7 @@ static void handle_client_connection(int client_fd) {
 
     close(data_fd);
 
-    lseek(data_fd, 0, SEEK_SET);
+    lseek(data_fd, 0, SEEK_SET);  //line seeks to the beginning of the data file using lseek
 
     data_fd = open(DATA_FILE, O_RDONLY);
     if (data_fd == -1) {
@@ -234,11 +364,14 @@ static void handle_client_connection(int client_fd) {
         return;
     }
 
+    //to store the number of bytes read from the data file and resetting the buffer to all zeros.
     ssize_t bytes_read;
-
     memset(buffer, 0, sizeof(char) * BUFFER_SIZE);
-    while ((bytes_read = read(data_fd, buffer, sizeof(char) * BUFFER_SIZE)) > 0) {
-        send(client_fd, buffer, bytes_read, 0);
+    
+    //reading data from the data file into the buffer in chunks of up to BUFFER_SIZE bytes using the read function
+    while ((bytes_read = read(data_fd, buffer, sizeof(char) * BUFFER_SIZE)) > 0)  
+    {
+        send(client_fd, buffer, bytes_read, 0);  //sending the data read from the file back to the client 
     }
 
     free(buffer);
