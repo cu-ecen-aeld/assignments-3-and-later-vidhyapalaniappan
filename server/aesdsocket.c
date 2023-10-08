@@ -165,7 +165,7 @@ static int daemon_func()
         if (sockfd == -1) 
         {
             syslog(LOG_ERR, "Error binding to port %d", PORT);
-            exit_func();
+            //exit_func();
             return ERROR_SOCKET_BIND;
         }
 
@@ -177,7 +177,7 @@ static int daemon_func()
         {
             perror("fork");
             syslog(LOG_ERR, "Error forking: %m");
-            exit_func();
+            //exit_func();
             return -1;
         }
 
@@ -196,7 +196,7 @@ static int daemon_func()
         {
             perror("setsid");
             syslog(LOG_ERR, "Error creating daemon session: %m");
-            exit_func();
+            //exit_func();
             return -1;
         }
 
@@ -205,7 +205,7 @@ static int daemon_func()
         {
             perror("chdir");
             syslog(LOG_ERR, "Error changing working directory: %m");
-            exit_func();
+            //exit_func();
             return -1;
         }
 
@@ -233,7 +233,7 @@ static void exit_func()
     if (unlink(DATA_FILE) == -1) {
         syslog(LOG_ERR, "Error removing data file: %m");
     }
-    close(client_fd);
+    //close(client_fd);
     closelog();
 }
 
