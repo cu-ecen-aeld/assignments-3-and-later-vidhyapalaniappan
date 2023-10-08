@@ -13,22 +13,77 @@
 #define PORT 9000
 #define DATA_FILE "/var/tmp/aesdsocketdata"
 
+int sockfd;
+int client_fd;
+
 volatile sig_atomic_t exit_flag = 0;
 
 void sig_handler(int signo) {
     if (signo == SIGINT || signo == SIGTERM) {
         syslog(LOG_INFO, "plv : Caught signal, exiting");
+	unlink("/var/tmp/aesdsocketdata");
+        close(sockfd);
+        close(client_fd);
         exit_flag = 1;
+	exit(1);
     }
 }
 
-int main() {
+static int daemon_create()
+{
+    /* Create new process */
+    pid_t pid = fork();
+    if(pid == -1)
+    {
+        return -1;
+    }
+    else if(pid != 0)
+    {
+        exit(EXIT_SUCCESS);
+    }
+    /* Session ID create */
+    if(setsid() == -1)
+    {
+        return -1;
+    }
+    /* Set the working directory to root */
+    if(chdir("/") == -1)
+    {
+        return -1;
+    }
+    
+    /* Set speacial fds */
+    open("/dev/null", O_RDWR);  //fd = 0
+   open("/dev/null", O_RDWR);  //fd = 1
+    open("/dev/null", O_RDWR);  //fd = 2
+    
+    return 0;
+}
+
+int main(int argc, char **argv) {
+   syslog(LOG_INFO, "plv : start");
     // Initialize signal handler
+
+
+int daemon_fg = 0;
+
+if(argc > 1)
+    {
+        if(strcmp(argv[1], "-d") == 0)
+        {
+            daemon_fg = 1;
+        }
+        else
+        {
+            printf("Invalid argument to process daemon\n");
+        }
+    }
+
     signal(SIGINT, sig_handler);
     signal(SIGTERM, sig_handler);
 
     // Create and bind the socket
-    int sockfd = socket(AF_INET, SOCK_STREAM, 0);
+    sockfd = socket(AF_INET, SOCK_STREAM, 0);
     if (sockfd == -1) {
         perror("socket");
         return -1;
@@ -53,6 +108,18 @@ int main() {
         return -1;
     }
 
+if(daemon_fg)
+    {
+        if(daemon_create() == -1)
+        {
+            syslog(LOG_ERR, "Error creating Daemon");
+        }
+        else
+        {
+            syslog(LOG_DEBUG, "Daemon created successfully");
+        }
+    }
+
     if (listen(sockfd, 5) == -1) {
         perror("listen");
         close(sockfd);
@@ -61,9 +128,9 @@ int main() {
 
     syslog(LOG_INFO, "plv : erver is listening on port %d", PORT);
 
-    while (!exit_flag) {
+    while (1) {
         socklen_t client_len = sizeof(client_addr);
-        int client_fd = accept(sockfd, (struct sockaddr *)&client_addr, &client_len);
+        client_fd = accept(sockfd, (struct sockaddr *)&client_addr, &client_len);
         if (client_fd == -1) {
             perror("accept");
             continue;
@@ -85,8 +152,9 @@ int main() {
                 break;
             }
         }
-	buffer[bytes_received] = '\0';
-	syslog(LOG_INFO, "plv: Received data from %s: %.*s", client_ip, (int)bytes_received, buffer);
+//      buffer[bytes_received] = '\0';
+      //  syslog(LOG_INFO, "plv: Received data from %s: %.*s", client_ip, (int)bytes_received, buffer);
+	syslog(LOG_INFO, "plv: Received data from %s: %s, %d", client_ip, buffer, (int)bytes_received);
 
         close(data_fd);
 
@@ -94,13 +162,14 @@ int main() {
         data_fd = open(DATA_FILE, O_RDONLY);
         ssize_t bytes_read;
 
+	memset(buffer, 0, sizeof(buffer));
         while ((bytes_read = read(data_fd, buffer, sizeof(buffer))) > 0) {
             send(client_fd, buffer, bytes_read, 0);
-           
-            buffer[bytes_read] = '\0';
-	    syslog(LOG_INFO, "plv : Sent data to %s: %s", client_ip, buffer);
-	    //syslog(LOG_INFO, "plv : Sent data to %s: %.*s", client_ip, (int)bytes_read, buffer);
-	}
+
+//            buffer[bytes_read] = '\0';
+            syslog(LOG_INFO, "plv : Sent data to %s: %s", client_ip, buffer);
+            //syslog(LOG_INFO, "plv : Sent data to %s: %s, %d", client_ip, buffer, (int)bytes_read);
+        }
 
         close(data_fd);
         close(client_fd);
@@ -110,8 +179,8 @@ int main() {
 
     // Cleanup and exit
     close(sockfd);
-    remove(DATA_FILE);
+    unlink(DATA_FILE); // Remove the file when the server exits
+    //remove(DATA_FILE);
     closelog();
     return 0;
 }
-
