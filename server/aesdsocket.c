@@ -1,15 +1,14 @@
 /********************************************************************************************************************************************************
- File name: aesdsocket.c
- ​Description: A socket program for server in stream mode
- File​ ​Author​ ​Name: Vidhya. PL
- Date : 10/08/2023
- Reference : https://beej.us/guide/bgnet/html/#getaddrinfoprepare-to-launch 
-             https://www.thegeekstuff.com/2012/02/c-daemon-process/
-             Binding function: ChatGPT at https://chat.openai.com/ with prompts including 
-             "Binding function for server using sockaddr_in"
+ File name        : aesdsocket.c
+ ​Description      : A socket program for server in stream mode
+ File​ ​Author​ ​Name : Vidhya. PL
+ Date             : 10/08/2023
+ Reference        : https://beej.us/guide/bgnet/html/#getaddrinfoprepare-to-launch 
+                    https://www.thegeekstuff.com/2012/02/c-daemon-process/
+                    Binding function: ChatGPT at https://chat.openai.com/ with prompts including 
+                    "Binding function for server using sockaddr_in"
  **********************************************************************************************************************************************************
 */
-
 
 /*Including necessary header files*/
 #include <stdio.h>
@@ -142,8 +141,14 @@ static void signal_handler(int signo)
         { 
             syslog(LOG_ERR, "Error removing data file: %m");
         }
-        close(sockfd);
-        close(client_fd);
+    	if(close(sockfd) == -1)
+	{
+    	     syslog(LOG_ERR, "Error closing data file");
+        }
+       if(close(client_fd) == -1)
+        {
+    	     syslog(LOG_ERR, "Error closing client fd");
+        }
         closelog();
         exit(1);
     }
@@ -207,11 +212,17 @@ static void exit_func()
  *----------------------------------------------------------------------------*/
 static void exit_func() 
 {
-    close(sockfd);
+    if(close(sockfd) == -1)
+    {
+    	syslog(LOG_ERR, "Error closing data file");
+    }
     if (unlink(DATA_FILE) == -1) {
         syslog(LOG_ERR, "Error removing data file: %m");
     }
-    close(client_fd);
+    if(close(client_fd) == -1)
+    {
+    	syslog(LOG_ERR, "Error closing client fd");
+    }
     closelog();
 }
 
@@ -353,8 +364,15 @@ static void handle_client_connection(int client_fd)
     }
 
     free(buffer);
-    close(data_fd);
-    close(client_fd);
+    
+    if(close(data_fd) == -1)
+    {
+    	syslog(LOG_ERR, "Error closing data file");
+    }
+    if(close(client_fd) == -1)
+    {
+    	syslog(LOG_ERR, "Error closing client fd");
+    }
 
     syslog(LOG_INFO, "Closed connection from %s", client_ip);
 }

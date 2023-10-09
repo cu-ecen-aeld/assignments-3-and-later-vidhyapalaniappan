@@ -1,5 +1,15 @@
 #!/bin/sh
 
+: '
+ @file    		:   aesdsocket-start-stop.sh
+ @brief   		:   Script to start and stop aesdsocket application in daemon mode with -d option
+ 
+ @author  		:   Vidhya Palaniappan
+ @date    		:   Oct 08, 2023
+  
+ @credits       	:   ChatGPT at https://chat.openai.com/ with prompts including "script to start aesdsocket application in daemon mode with the -d option"
+ 		
+'
 # Path to your aesdsocket executable
 AESDSOCKET_EXEC=/usr/bin/aesdsocket
 
