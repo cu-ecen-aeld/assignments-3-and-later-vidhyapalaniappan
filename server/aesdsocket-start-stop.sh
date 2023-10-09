@@ -10,6 +10,7 @@
  @credits       	:   ChatGPT at https://chat.openai.com/ with prompts including "script to start aesdsocket application in daemon mode with the -d option"
  		
 '
+
 # Path to your aesdsocket executable
 AESDSOCKET_EXEC=/usr/bin/aesdsocket
 
