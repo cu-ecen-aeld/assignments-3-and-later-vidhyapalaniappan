@@ -1,0 +1,142 @@
+==3861== Memcheck, a memory error detector
+==3861== Copyright (C) 2002-2017, and GNU GPL'd, by Julian Seward et al.
+==3861== Using Valgrind-3.15.0-608cb11914-20190413 and LibVEX; rerun with -h for copyright info
+==3861== Command: ./aesdsocket
+==3861== Parent PID: 3859
+==3861== 
+--3861-- 
+--3861-- Valgrind options:
+--3861--    --error-exitcode=1
+--3861--    --leak-check=full
+--3861--    --show-leak-kinds=all
+--3861--    --track-origins=yes
+--3861--    --errors-for-leak-kinds=definite
+--3861--    --verbose
+--3861--    --log-file=valgrind-out.txt
+--3861-- Contents of /proc/version:
+--3861--   Linux version 5.15.0-84-generic (buildd@lcy02-amd64-005) (gcc (Ubuntu 9.4.0-1ubuntu1~20.04.2) 9.4.0, GNU ld (GNU Binutils for Ubuntu) 2.34) #93~20.04.1-Ubuntu SMP Wed Sep 6 16:15:40 UTC 2023
+--3861-- 
+--3861-- Arch and hwcaps: AMD64, LittleEndian, amd64-cx16-lzcnt-rdtscp-sse3-ssse3
+--3861-- Page sizes: currently 4096, max supported 4096
+--3861-- Valgrind library directory: /usr/lib/x86_64-linux-gnu/valgrind
+--3861-- Reading syms from /home/vidhya/aesd/assignments-3-and-later-vidhyapalaniappan/server/aesdsocket
+--3861-- Reading syms from /usr/lib/x86_64-linux-gnu/ld-2.31.so
+--3861--   Considering /usr/lib/debug/.build-id/45/87364908de169dec62ffa538170118c1c3a078.debug ..
+--3861--   .. build-id is valid
+--3861-- Reading syms from /usr/lib/x86_64-linux-gnu/valgrind/memcheck-amd64-linux
+--3861--    object doesn't have a symbol table
+--3861--    object doesn't have a dynamic symbol table
+--3861-- Scheduler: using generic scheduler lock implementation.
+--3861-- Reading suppressions file: /usr/lib/x86_64-linux-gnu/valgrind/default.supp
+==3861== embedded gdbserver: reading from /tmp/vgdb-pipe-from-vgdb-to-3861-by-vidhya-on-???
+==3861== embedded gdbserver: writing to   /tmp/vgdb-pipe-to-vgdb-from-3861-by-vidhya-on-???
+==3861== embedded gdbserver: shared mem   /tmp/vgdb-pipe-shared-mem-vgdb-3861-by-vidhya-on-???
+==3861== 
+==3861== TO CONTROL THIS PROCESS USING vgdb (which you probably
+==3861== don't want to do, unless you know exactly what you're doing,
+==3861== or are doing some strange experiment):
+==3861==   /usr/lib/x86_64-linux-gnu/valgrind/../../bin/vgdb --pid=3861 ...command...
+==3861== 
+==3861== TO DEBUG THIS PROCESS USING GDB: start GDB like this
+==3861==   /path/to/gdb ./aesdsocket
+==3861== and then give GDB the following command
+==3861==   target remote | /usr/lib/x86_64-linux-gnu/valgrind/../../bin/vgdb --pid=3861
+==3861== --pid is optional if only one valgrind process is running
+==3861== 
+--3861-- REDIR: 0x4022e20 (ld-linux-x86-64.so.2:strlen) redirected to 0x580c9ce2 (???)
+--3861-- REDIR: 0x4022bf0 (ld-linux-x86-64.so.2:index) redirected to 0x580c9cfc (???)
+--3861-- Reading syms from /usr/lib/x86_64-linux-gnu/valgrind/vgpreload_core-amd64-linux.so
+--3861--    object doesn't have a symbol table
+--3861-- Reading syms from /usr/lib/x86_64-linux-gnu/valgrind/vgpreload_memcheck-amd64-linux.so
+--3861--    object doesn't have a symbol table
+==3861== WARNING: new redirection conflicts with existing -- ignoring it
+--3861--     old: 0x04022e20 (strlen              ) R-> (0000.0) 0x580c9ce2 ???
+--3861--     new: 0x04022e20 (strlen              ) R-> (2007.0) 0x0483f060 strlen
+--3861-- REDIR: 0x401f600 (ld-linux-x86-64.so.2:strcmp) redirected to 0x483ffd0 (strcmp)
+--3861-- REDIR: 0x4023380 (ld-linux-x86-64.so.2:mempcpy) redirected to 0x4843a20 (mempcpy)
+--3861-- Reading syms from /usr/lib/x86_64-linux-gnu/libc-2.31.so
+--3861--   Considering /usr/lib/debug/.build-id/18/78e6b475720c7c51969e69ab2d276fae6d1dee.debug ..
+--3861--   .. build-id is valid
+--3861-- REDIR: 0x48fb480 (libc.so.6:memmove) redirected to 0x48311d0 (_vgnU_ifunc_wrapper)
+--3861-- REDIR: 0x48fa780 (libc.so.6:strncpy) redirected to 0x48311d0 (_vgnU_ifunc_wrapper)
+--3861-- REDIR: 0x48fb7b0 (libc.so.6:strcasecmp) redirected to 0x48311d0 (_vgnU_ifunc_wrapper)
+--3861-- REDIR: 0x48fa0a0 (libc.so.6:strcat) redirected to 0x48311d0 (_vgnU_ifunc_wrapper)
+--3861-- REDIR: 0x48fa7e0 (libc.so.6:rindex) redirected to 0x48311d0 (_vgnU_ifunc_wrapper)
+--3861-- REDIR: 0x48fcc50 (libc.so.6:rawmemchr) redirected to 0x48311d0 (_vgnU_ifunc_wrapper)
+--3861-- REDIR: 0x4917ce0 (libc.so.6:wmemchr) redirected to 0x48311d0 (_vgnU_ifunc_wrapper)
+--3861-- REDIR: 0x4917820 (libc.so.6:wcscmp) redirected to 0x48311d0 (_vgnU_ifunc_wrapper)
+--3861-- REDIR: 0x48fb5e0 (libc.so.6:mempcpy) redirected to 0x48311d0 (_vgnU_ifunc_wrapper)
+--3861-- REDIR: 0x48fb410 (libc.so.6:bcmp) redirected to 0x48311d0 (_vgnU_ifunc_wrapper)
+--3861-- REDIR: 0x48fa710 (libc.so.6:strncmp) redirected to 0x48311d0 (_vgnU_ifunc_wrapper)
+--3861-- REDIR: 0x48fa150 (libc.so.6:strcmp) redirected to 0x48311d0 (_vgnU_ifunc_wrapper)
+--3861-- REDIR: 0x48fb540 (libc.so.6:memset) redirected to 0x48311d0 (_vgnU_ifunc_wrapper)
+--3861-- REDIR: 0x49177e0 (libc.so.6:wcschr) redirected to 0x48311d0 (_vgnU_ifunc_wrapper)
+--3861-- REDIR: 0x48fa670 (libc.so.6:strnlen) redirected to 0x48311d0 (_vgnU_ifunc_wrapper)
+--3861-- REDIR: 0x48fa230 (libc.so.6:strcspn) redirected to 0x48311d0 (_vgnU_ifunc_wrapper)
+--3861-- REDIR: 0x48fb800 (libc.so.6:strncasecmp) redirected to 0x48311d0 (_vgnU_ifunc_wrapper)
+--3861-- REDIR: 0x48fa1d0 (libc.so.6:strcpy) redirected to 0x48311d0 (_vgnU_ifunc_wrapper)
+--3861-- REDIR: 0x48fb950 (libc.so.6:memcpy@@GLIBC_2.14) redirected to 0x48311d0 (_vgnU_ifunc_wrapper)
+--3861-- REDIR: 0x4918f50 (libc.so.6:wcsnlen) redirected to 0x48311d0 (_vgnU_ifunc_wrapper)
+--3861-- REDIR: 0x4917860 (libc.so.6:wcscpy) redirected to 0x48311d0 (_vgnU_ifunc_wrapper)
+--3861-- REDIR: 0x48fa820 (libc.so.6:strpbrk) redirected to 0x48311d0 (_vgnU_ifunc_wrapper)
+--3861-- REDIR: 0x48fa100 (libc.so.6:index) redirected to 0x48311d0 (_vgnU_ifunc_wrapper)
+--3861-- REDIR: 0x48fa630 (libc.so.6:strlen) redirected to 0x48311d0 (_vgnU_ifunc_wrapper)
+--3861-- REDIR: 0x4903bb0 (libc.so.6:memrchr) redirected to 0x48311d0 (_vgnU_ifunc_wrapper)
+--3861-- REDIR: 0x48fb850 (libc.so.6:strcasecmp_l) redirected to 0x48311d0 (_vgnU_ifunc_wrapper)
+--3861-- REDIR: 0x48fb3d0 (libc.so.6:memchr) redirected to 0x48311d0 (_vgnU_ifunc_wrapper)
+--3861-- REDIR: 0x4917930 (libc.so.6:wcslen) redirected to 0x48311d0 (_vgnU_ifunc_wrapper)
+--3861-- REDIR: 0x48faae0 (libc.so.6:strspn) redirected to 0x48311d0 (_vgnU_ifunc_wrapper)
+--3861-- REDIR: 0x48fb750 (libc.so.6:stpncpy) redirected to 0x48311d0 (_vgnU_ifunc_wrapper)
+--3861-- REDIR: 0x48fb6f0 (libc.so.6:stpcpy) redirected to 0x48311d0 (_vgnU_ifunc_wrapper)
+--3861-- REDIR: 0x48fcc90 (libc.so.6:strchrnul) redirected to 0x48311d0 (_vgnU_ifunc_wrapper)
+--3861-- REDIR: 0x48fb8a0 (libc.so.6:strncasecmp_l) redirected to 0x48311d0 (_vgnU_ifunc_wrapper)
+--3861-- REDIR: 0x490c8c0 (libc.so.6:__strrchr_sse2) redirected to 0x483ea70 (__strrchr_sse2)
+--3861-- REDIR: 0x48f50e0 (libc.so.6:malloc) redirected to 0x483b780 (malloc)
+--3861-- REDIR: 0x48f6b10 (libc.so.6:calloc) redirected to 0x483dce0 (calloc)
+--3861-- REDIR: 0x490c6b0 (libc.so.6:__strchrnul_sse2) redirected to 0x4843540 (strchrnul)
+--3861-- REDIR: 0x490cbc0 (libc.so.6:__strlen_sse2) redirected to 0x483efa0 (__strlen_sse2)
+--3861-- REDIR: 0x48f56d0 (libc.so.6:free) redirected to 0x483c9d0 (free)
+--3861-- REDIR: 0x4916ad0 (libc.so.6:memcpy@GLIBC_2.2.5) redirected to 0x4840100 (memcpy@GLIBC_2.2.5)
+--3861-- REDIR: 0x48fafa0 (libc.so.6:__GI_strstr) redirected to 0x4843ca0 (__strstr_sse2)
+--3861-- REDIR: 0x49e8550 (libc.so.6:__memcmp_sse4_1) redirected to 0x4842150 (__memcmp_sse4_1)
+--3861-- REDIR: 0x49053b0 (libc.so.6:__strcmp_sse2_unaligned) redirected to 0x483fed0 (strcmp)
+--3861-- REDIR: 0x4916f00 (libc.so.6:__memset_sse2_unaligned) redirected to 0x48428e0 (memset)
+--3861-- REDIR: 0x48f5e80 (libc.so.6:realloc) redirected to 0x483df30 (realloc)
+--3861-- REDIR: 0x4916ab0 (libc.so.6:__mempcpy_sse2_unaligned) redirected to 0x4843660 (mempcpy)
+--3861-- REDIR: 0x4911b00 (libc.so.6:__strcpy_sse2_unaligned) redirected to 0x483f090 (strcpy)
+--3861-- REDIR: 0x4906ec0 (libc.so.6:__memchr_sse2) redirected to 0x4840050 (memchr)
+==3861== Invalid read of size 1
+==3861==    at 0x483EFB4: __strlen_sse2 (in /usr/lib/x86_64-linux-gnu/valgrind/vgpreload_memcheck-amd64-linux.so)
+==3861==    by 0x48D3D14: __vfprintf_internal (vfprintf-internal.c:1688)
+==3861==    by 0x4972DD2: __vsyslog_internal (syslog.c:233)
+==3861==    by 0x4973289: syslog (syslog.c:117)
+==3861==    by 0x109C3C: handle_client_connection (aesdsocket.c:341)
+==3861==    by 0x1096BE: main (aesdsocket.c:118)
+==3861==  Address 0x4a7ece0 is 0 bytes after a block of size 1,024 alloc'd
+==3861==    at 0x483B7F3: malloc (in /usr/lib/x86_64-linux-gnu/valgrind/vgpreload_memcheck-amd64-linux.so)
+==3861==    by 0x109B18: handle_client_connection (aesdsocket.c:308)
+==3861==    by 0x1096BE: main (aesdsocket.c:118)
+==3861== 
+==3861== 
+==3861== HEAP SUMMARY:
+==3861==     in use at exit: 0 bytes in 0 blocks
+==3861==   total heap usage: 89 allocs, 89 frees, 231,368 bytes allocated
+==3861== 
+==3861== All heap blocks were freed -- no leaks are possible
+==3861== 
+==3861== ERROR SUMMARY: 1 errors from 1 contexts (suppressed: 0 from 0)
+==3861== 
+==3861== 1 errors in context 1 of 1:
+==3861== Invalid read of size 1
+==3861==    at 0x483EFB4: __strlen_sse2 (in /usr/lib/x86_64-linux-gnu/valgrind/vgpreload_memcheck-amd64-linux.so)
+==3861==    by 0x48D3D14: __vfprintf_internal (vfprintf-internal.c:1688)
+==3861==    by 0x4972DD2: __vsyslog_internal (syslog.c:233)
+==3861==    by 0x4973289: syslog (syslog.c:117)
+==3861==    by 0x109C3C: handle_client_connection (aesdsocket.c:341)
+==3861==    by 0x1096BE: main (aesdsocket.c:118)
+==3861==  Address 0x4a7ece0 is 0 bytes after a block of size 1,024 alloc'd
+==3861==    at 0x483B7F3: malloc (in /usr/lib/x86_64-linux-gnu/valgrind/vgpreload_memcheck-amd64-linux.so)
+==3861==    by 0x109B18: handle_client_connection (aesdsocket.c:308)
+==3861==    by 0x1096BE: main (aesdsocket.c:118)
+==3861== 
+==3861== ERROR SUMMARY: 1 errors from 1 contexts (suppressed: 0 from 0)
