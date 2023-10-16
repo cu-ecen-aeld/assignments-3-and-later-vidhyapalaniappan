@@ -1,3 +1,14 @@
+/********************************************************************************************************************************************************
+ File name        : aesdsocket.c
+ ​Description      : A socket program for server in stream mode which accepts mulitple threads and runs a seperate thread for timer
+ File​ ​Author​ ​Name : Vidhya. PL
+ Date             : 10/15/2023
+ Reference        : Linked list : https://github.com/cu-ecen-aeld/assignments-3-and-later-tanmay-mk/blob/f3ee5ef703388693a9394793a1664ae81fb7c5d7/server/aesdsocket.c
+                    Timer logic : https://github.com/cu-ecen-aeld/assignments-3-and-later-dash6424/blob/4fa53bfa3ab2770d4fc3e3fdd153001abcd2b5f3/server/aesdsocket.c
+ **********************************************************************************************************************************************************
+*/
+
+/*Including necessary header files*/
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -27,17 +38,25 @@
 #define MAX_IP_LEN INET_ADDRSTRLEN
 #define PERIOD 10
 
-
 /*Defining ERROR codes*/
-#define ERROR_SOCKET_CREATE  -1
-#define ERROR_SOCKET_OPTIONS -2
-#define ERROR_SOCKET_BIND    -3
-#define ERROR_LISTEN         -4
-#define ERROR_FILE_OPEN      -5
-#define ERROR_MEMORY_ALLOC   -6
+#define ERROR_SOCKET_CREATE      -1
+#define ERROR_SOCKET_OPTIONS     -2
+#define ERROR_SOCKET_BIND        -3
+#define ERROR_LISTEN             -4
+#define ERROR_FILE_OPEN          -5
+#define ERROR_MEMORY_ALLOC       -6
+#define MUTEX_LOCK_FAILED        -7
+#define WRITE_FAILED             -8
+#define LSEEK_FAILED             -9
+#define SEND_FAILED             -10
+#define MUTEX_UNLOCK_FAILED     -11
+#define CLOCK_GETTIME_FAILED    -12
+#define CLOCK_NANOSLEEP_FAILED  -13
+#define TIME_FAILED             -14
+#define LOCALTIME_FAILED        -15
 
+/*Global variables*/
 int execution_flag = 0;
-
 int sock_fd;
 int client_fd;
 int data_fd;
@@ -47,47 +66,61 @@ static void signal_handler(int signo);
 static int daemon_func();
 static int setup_socket();
 static void exit_func();
-void *multi_thread_handler(void *thread_params);
-void *timer_thread(void *thread_params);
+void *multi_thread_handler(void *arg);
+void *func_timer(void *arg);
 
+/*Structure for thread parameters*/
 typedef struct
 {
-    pthread_t thread_id;
-    int complete_flag;
-    int client_fd;
-    int fd;
-    struct sockaddr_in *client_addr;
-    pthread_mutex_t *mutex;
+    pthread_t tid; //Thread id
+    int thread_complete;   //flag to indicate completion of thread
+    int client_fd;  //Stores the client socket descriptor.
+    int data_fd;   //Stores a file descriptor of destination file
+    struct sockaddr_in *client_addr; //client address
+    pthread_mutex_t *mutex;  //for thread mutex
     
-}thread_data_t;
+}thread_parameters_t;
 
+/*Structure for Linked List*/
 typedef struct slist_data_s
 {
-	thread_data_t	thread_data;
+	thread_parameters_t	thread_data;
 	SLIST_ENTRY(slist_data_s) entries;
 }slist_data_t;
 
-pthread_mutex_t mutex_lock = PTHREAD_MUTEX_INITIALIZER;
-SLIST_HEAD(slisthead, slist_data_s) head;
-slist_data_t 	*datap 			= NULL;
+pthread_mutex_t mutex_lock = PTHREAD_MUTEX_INITIALIZER;  //Declaring a mutex lock
+SLIST_HEAD(slisthead, slist_data_s) head;   //Defining a Singly linked list
+slist_data_t *node = NULL; 
 
-
+/*Structure for Timer node*/
 typedef struct
 {
-    pthread_t thread_id;
-    int fd;
+    pthread_t tid;
+    int data_fd;
     pthread_mutex_t *mutex;
-}timer_node_t;
+    struct timespec *time_spec;
+    time_t *time_now;
+    struct tm *details_time;
+}timer_struct_t;
 
+/*----------------------------------------------------------------------------
+ int main(int argc, char **argv)
+ *@brief : Main function
+ *
+ *Parameters : argc, argv
+ *
+ *Return : 0 on completion
+ *
+ *----------------------------------------------------------------------------*/
 int main(int argc, char **argv)
 {
     openlog(NULL, 0, LOG_USER);
     syslog(LOG_INFO, "Starting aesdsocket");
     
-    struct sigaction action;
+    struct sigaction action; //structure is used to set up signal handling.
 
-    action.sa_flags = 0;
-    action.sa_handler = &signal_handler;
+    action.sa_flags = 0;  //no special flags are set for signal handling
+    action.sa_handler = &signal_handler; //setting the signal mask for the action structure using sigfillset;  all signals will be blocked to this process.
 
     sigfillset(&action.sa_mask);
    
@@ -107,9 +140,9 @@ int main(int argc, char **argv)
         exit(-1);
     }
 
-    //Daemon flag if -d is passed as an argument.
-    int daemon_set = 0;
+    int daemon_set = 0; //Variable used to determine whether the program should run as a daemon.
 
+    //checking if -d argument is given for daemon. If given, setting the daemon flag
     if (argc > 1 && strcmp(argv[1], "-d") == 0) 
     {
         daemon_set = 1;
@@ -125,20 +158,23 @@ int main(int argc, char **argv)
         if (daemon_func() == -1) 
         {
             syslog(LOG_ERR, "Failed to create Daemon");
-        } else 
+        } 
+        else 
         {
             syslog(LOG_DEBUG, "Successfully created Daemon");
         }
     }
 
     int sock_fd = setup_socket();  //Creating a socket
-    if (sock_fd == -1) {
+    if (sock_fd == -1) 
+    {
         exit_func();
         return ERROR_SOCKET_CREATE;
     }
     syslog(LOG_INFO, "Server is listening on port %d", PORT);
 
-    /* Open a file */
+    //Opening file with permisiions 0644 gave bad file descriptor error. So changed the arguments
+    //opening a data file (DATA_FILE) for both reading and writing
     data_fd = open(DATA_FILE, (O_CREAT | O_TRUNC | O_RDWR), (S_IRWXU | S_IRWXG | S_IROTH));
     if(data_fd == -1)
     {
@@ -147,82 +183,89 @@ int main(int argc, char **argv)
         return -1;
     }
 
-    /* Mutex init */
-    pthread_mutex_t mutex;
+    pthread_mutex_t mutex; //initializing the mutex
     pthread_mutex_init(&mutex, NULL);
 
-	/*------------------------------------------------------------------------*/
-    /* Timer thread create */
-    timer_node_t timer_node;
-    timer_node.mutex = &mutex;
-    timer_node.fd = data_fd;
-    if(0 != pthread_create(&(timer_node.thread_id), NULL, timer_thread, &timer_node))
+    //Populating the timer node structure with corresponding data
+    timer_struct_t timer_struct;
+    struct timespec time_spec;
+    time_t time_now;
+    struct tm details_time;
+    timer_struct.mutex = &mutex;
+    timer_struct.data_fd = data_fd;
+    timer_struct.time_spec = &time_spec;
+    timer_struct.time_now = &time_now; 
+    timer_struct.details_time = &details_time;
+
+    //Creating a pthread
+    if(0 != pthread_create(&(timer_struct.tid), NULL, func_timer, &timer_struct))
     {
         /* Still continue if failure is seen */
         perror("pthread create failed: ");
     }
     else
     {
-        syslog(LOG_DEBUG, "Thread create successful. thread = %ld", timer_node.thread_id);
+        syslog(LOG_DEBUG, "Thread create successful. thread = %ld", timer_struct.tid);
     }
 
-    /* Linked List head */
-    SLIST_INIT(&head);
-    //node_t *head = NULL;
-
-    struct sockaddr_storage test_addr;          // Test addr to populate from accept()
-   // socklen_t addr_size = sizeof(test_addr);    // Size of test addr
-
+    struct sockaddr_storage new_addr;
+    SLIST_INIT(&head); //Linking the head of linked list
+   
     while(!execution_flag)
     {
-        struct sockaddr_in client_addr;
+        struct sockaddr_in client_addr; //to store information about a client's network address.
         socklen_t client_len = sizeof(client_addr);
         client_fd = accept(sock_fd, (struct sockaddr *)&client_addr, &client_len);  //continuously accepting incoming client connections 
-        if (client_fd == -1) {
+        if (client_fd == -1) 
+        {
             perror("accept");
             syslog(LOG_ERR, "Error accepting client connection: %m");
             continue;
         }
 
-        datap = (slist_data_t *) malloc(sizeof(slist_data_t));
-		SLIST_INSERT_HEAD(&head,datap,entries);
+        node = (slist_data_t *) malloc(sizeof(slist_data_t)); //to  manage information about each client connection
+		SLIST_INSERT_HEAD(&head,node,entries); // inserting the node structure into a singly-linked list at the head of the list
 
-		datap->thread_data.client_fd = client_fd;
-		datap->thread_data.complete_flag = 0;
-		datap->thread_data.mutex = &mutex;
-        datap->thread_data.fd = data_fd;
-        datap->thread_data.client_addr = (struct sockaddr_in *)&test_addr;
+		node->thread_data.client_fd = client_fd;
+		node->thread_data.thread_complete = 0;
+		node->thread_data.mutex = &mutex;
+        node->thread_data.data_fd = data_fd;
+        node->thread_data.client_addr = (struct sockaddr_in *)&new_addr;
 
-		int status = pthread_create(&(datap->thread_data.thread_id), 			
-							NULL,			
-							multi_thread_handler,			
-							&datap->thread_data
+		int p_create = pthread_create(&(node->thread_data.tid),  //stores the thread's identifier.	
+							NULL,			                     //default thread attributes should be used
+							multi_thread_handler,		         //Function to be executed	
+							&node->thread_data                   
 							);
 
-		if (status != 0)
+		if (p_create != 0)
 		{
-			syslog(LOG_ERR,"pthread_create() failed\n");
+			syslog(LOG_ERR,"Failed to create pthread\n");
 			return -1;
 		}
 
-		syslog(LOG_INFO,"Thread created\n");
+		syslog(LOG_INFO,"Successfully created thread\n");
 
-		SLIST_FOREACH(datap,&head,entries)
+		SLIST_FOREACH(node,&head,entries)   // iterates through each node in the singly-linked list
 		{
-			pthread_join(datap->thread_data.thread_id,NULL);
-			if(datap->thread_data.complete_flag == 1)
+			pthread_join(node->thread_data.tid,NULL);   // to wait for the thread associated with the current node to finish its execution
+			if(node->thread_data.thread_complete == 1)
 			{
-				//pthread_join(datap->thread_params.thread_id,NULL);
-				SLIST_REMOVE(&head, datap, slist_data_s, entries);
-				free(datap);
-                datap = NULL;
+				SLIST_REMOVE(&head, node, slist_data_s, entries); // removing the current node from the singly-linked list head
+				free(node);
+                node = NULL;
 				break;
 			}
 		}
 
     }
 
-     if(-1 == close(sock_fd))
+    if (unlink(DATA_FILE) == -1)
+    {
+        perror("unlink failed: ");
+    }
+
+    if(-1 == close(sock_fd))
     {
         perror("close sock_fd failed: ");
     }
@@ -232,34 +275,39 @@ int main(int argc, char **argv)
         perror("close fd failed: ");
     }
 
-    //unlink file
-    if (unlink(DATA_FILE) == -1)
-    {
-        perror("unlink failed: ");
-    }
+    pthread_join(timer_struct.tid, NULL);  //Joining timer structures
+    pthread_mutex_destroy(&mutex); //Destroying the pthread
 
-    /* Thread join timer threads */
-    pthread_join(timer_node.thread_id, NULL);
-
-    //Destroy pthread
-    pthread_mutex_destroy(&mutex);
-
-    //Close log
-    closelog();
-
-    //exit_func();
+    closelog(); 
     return 0;
 }
 
+/*----------------------------------------------------------------------------
+static void signal_handler(int signo) 
+ *@brief : Function to handle the incomming signals
+ *
+ *Parameters : signal number that triggered the signal handler
+ *
+ *Return : none
+ *
+ *----------------------------------------------------------------------------*/
 static void signal_handler(int signo)
 {
     if((signo == SIGINT) || signo == SIGTERM)
     {
-        execution_flag = 1;
+        execution_flag = 1;  //if a signal is recieved, only setting a flag
     }
 }
 
-
+/*----------------------------------------------------------------------------
+static int daemon_func() 
+ *@brief : Function to create a daemon process
+ *
+ *Parameters : none
+ *
+ *Return : 0
+ *
+ *----------------------------------------------------------------------------*/
 static int daemon_func() 
 {
     pid_t pid = fork();   //creating a child process by calling the fork function.
@@ -296,22 +344,42 @@ static int daemon_func()
     return 0;
 }
 
+/*----------------------------------------------------------------------------
+static void exit_func()
+ *@brief : Function to perform clean up operations
+ *
+ *Parameters : none
+ *
+ *Return : none
+ *
+ *----------------------------------------------------------------------------*/
 static void exit_func() 
 {
     if(close(sock_fd) == -1)
     {
     	syslog(LOG_ERR, "Error closing data file");
     }
+
     if (unlink(DATA_FILE) == -1) {
         syslog(LOG_ERR, "Error removing data file: %m");
     }
-    // if(close(data_fd) == -1)
-    // {
-    // 	syslog(LOG_ERR, "Error closing client fd");
-    // }
+
+    if(close(data_fd) == -1)
+    {
+    	syslog(LOG_ERR, "Error closing client fd");
+    }
     closelog();
 }
 
+/*----------------------------------------------------------------------------
+static int setup_socket() 
+ *@brief : Function to create socket, bind and listen
+ *
+ *Parameters : none
+ *
+ *Return : sockfd
+ *
+ *----------------------------------------------------------------------------*/
 static int setup_socket() 
 {
     int sockfd = socket(AF_INET, SOCK_STREAM, 0);  //creating a socket using the socket function.
@@ -319,14 +387,9 @@ static int setup_socket()
     {
         perror("socket");
         syslog(LOG_ERR, "Error creating socket: %m");
-        printf("Error creating socket: %m\n\r");
         return ERROR_SOCKET_CREATE;
     }
     
-    else{
-    	printf("succesfully created socket\n\r");
-    }
-
     int yes = 1;
     // setting a socket option called SO_REUSEADDR on the socket to allow reuse of the socket address
     // useful for cases where the server needs to restart and bind to the same port quickly
@@ -348,71 +411,59 @@ static int setup_socket()
     {
         perror("bind");
         syslog(LOG_ERR, "Error binding socket: %m");
-        printf("Error binding socket: %m\n\r");
         close(sockfd);
         return ERROR_SOCKET_BIND;
-    }
-    else{
-    	printf("successfully binded\n\r");
     }
 
     if (listen(sockfd, MAX_BACKLOG) == -1)    //setting the socket to the listening state using the listen function
     {
         perror("listen");
         syslog(LOG_ERR, "Error listening on socket: %m");
-        printf("Error listening on socket: %m\n\r");
         close(sockfd);
         return ERROR_LISTEN;
     }
-    else{
-    	printf("Listening on socket: %m\n\r");
-    }
-
     return sockfd;
 }
 
-
-void *multi_thread_handler(void *thread_params)
+/*----------------------------------------------------------------------------
+void *multi_thread_handler(void *arg)
+ *@brief : Function to process and respond to multiple threads
+ *
+ *Parameters : arg
+ *
+ *Return : none
+ *
+ *----------------------------------------------------------------------------*/
+void *multi_thread_handler(void *arg)
 {
-    char *recv_buffer = (char *)malloc(sizeof(char) * BUFFER_SIZE);   //buffer used to read and write data to and from the client
+    char *recv_buffer = (char *)malloc(sizeof(char) * BUFFER_SIZE);   //buffer used to recieve data from the client
     if (recv_buffer == NULL) 
     {
-        syslog(LOG_ERR, "Could not allocate memory");
+        syslog(LOG_ERR, "Could not allocate memory for receive buffer");
         exit(ERROR_MEMORY_ALLOC);
-    } else 
+    } 
+    else 
     {
-        syslog(LOG_ERR, "Successfully created buffer\n");
+        syslog(LOG_ERR, "Successfully created recieve buffer\n");
     }
-    memset(recv_buffer, 0, 1024);
+    memset(recv_buffer, 0, BUFFER_SIZE);
     ssize_t bytes_received;
 
 
-    char *send_buffer = (char *)malloc(sizeof(char) * BUFFER_SIZE);   //buffer used to read and write data to and from the client
+    char *send_buffer = (char *)malloc(sizeof(char) * BUFFER_SIZE);   //buffer used to send data back
     if (send_buffer == NULL) 
     {
-        syslog(LOG_ERR, "Could not allocate memory");
+        syslog(LOG_ERR, "Could not allocate memory for send buffer");
         exit(ERROR_MEMORY_ALLOC);
-    } else 
+    } 
+    else 
     {
-        syslog(LOG_ERR, "Successfully created buffer\n");
-    }
-        
-    memset(send_buffer, 0, 1024);
-    ssize_t bytes_read;
+        syslog(LOG_ERR, "Successfully created send buffer\n");
+    }   
+    memset(send_buffer, 0, BUFFER_SIZE);
+    ssize_t bytes_read; //to store the number of bytes read from the data file and resetting the buffer to all zeros.
 
-    //int ret;
-    // receive bytes
-	//ssize_t recv_bytes = 0;
-	//char recv_buf[1024];
-	
-	// send bytes
-	//size_t send_bytes = 0;
-	//char send_buf[1024];
-	//ssize_t bytes_read;
-
-
-
-    thread_data_t *thread_data = (thread_data_t*)thread_params;
+    thread_parameters_t *thread_data = (thread_parameters_t*)arg;
 
     char client_ip[MAX_IP_LEN];                   //to store information about the client's IP address. 
     struct sockaddr_in client_addr;               //structure to hold client socket address information
@@ -425,142 +476,129 @@ void *multi_thread_handler(void *thread_params)
 
     syslog(LOG_INFO, "Accepted connection from %s", client_ip);
     
+    //Locking thread mutex
     if (pthread_mutex_lock(thread_data->mutex) == -1)
     {
-        syslog(LOG_ERR,"mutex lock failed\n");
-        return NULL;
+        syslog(LOG_ERR,"Failed to lock mutex");
+        exit(MUTEX_LOCK_FAILED);
     }
 
-    // receive and write
-    while((bytes_received = recv(thread_data->client_fd, recv_buffer, 1024, 0))>0)
+    //reading data from the client socket in chunks of up to BUFFER_SIZE bytes using the recv function.
+    while((bytes_received = recv(thread_data->client_fd, recv_buffer, BUFFER_SIZE, 0))>0)
     {
-        if (write(data_fd, recv_buffer, bytes_received) == -1)
+        if (write(data_fd, recv_buffer, bytes_received) == -1)  //writing the received data to the data file using the write function.
         {
-            syslog(LOG_ERR,"File write failed");
-            return NULL;
+            syslog(LOG_ERR,"Failed to write to file");
+            exit(WRITE_FAILED);
         }
-        if (memchr(recv_buffer, '\n', bytes_received) != NULL) //checking if the received data contains a newline character 
+        if (memchr(recv_buffer, '\n', bytes_received) != NULL) //checking if the received data contains a newline character  
         {
             break;
         }
-    }
-
-    if (pthread_mutex_unlock(thread_data->mutex) == -1)
-    {
-        syslog(LOG_ERR,"mutex unlock failed\n");
-        return NULL;
-    }
-
-    if (pthread_mutex_lock(thread_data->mutex) == -1)
-    {
-        syslog(LOG_ERR,"mutex lock failed\n");
-        return NULL;
     }
 
     if (lseek(data_fd, 0, SEEK_SET) == -1)
     {
-        syslog(LOG_ERR,"lseek failed");
-        return NULL;
+        syslog(LOG_ERR,"Failed: lseek");
+        exit(LSEEK_FAILED);
     }
 
-    // read and send
-    while((bytes_read = read(data_fd, send_buffer, 1024) )> 0)
+    //reading data from the data file into the buffer in chunks of up to BUFFER_SIZE bytes using the read function
+    while((bytes_read = read(data_fd, send_buffer, BUFFER_SIZE) )> 0)
     {
-        if (send(thread_data->client_fd, send_buffer, bytes_read, 0) == -1)
+        if (send(thread_data->client_fd, send_buffer, bytes_read, 0) == -1) //sending the data read from the file back to the client 
         {
-            syslog(LOG_ERR,"Send failed");
-            return NULL;
+            syslog(LOG_ERR,"Failed to send data");
+            exit(SEND_FAILED);
         }
     }
 
-    if (pthread_mutex_unlock(thread_data->mutex) == -1)
+    if (pthread_mutex_unlock(thread_data->mutex) == -1)   //unlocking the mutex back
     {
-        syslog(LOG_ERR,"mutex unlock failed\n");
-        return NULL;
+        syslog(LOG_ERR,"Failed to unlock mutex\n");
+        exit(MUTEX_UNLOCK_FAILED);
     }
 
     close(thread_data->client_fd);
-    thread_data->complete_flag = 1;
-    return thread_params;
+    thread_data->thread_complete = 1;
+    free(recv_buffer);
+    free(send_buffer);
+    return arg;
 }
 
-void *timer_thread(void *thread_params)
+/*----------------------------------------------------------------------------
+void *func_timer(void *arg)
+ *@brief : Thread for timer function
+ *Parameters : arg
+ *
+ *Return : none
+ *
+ *----------------------------------------------------------------------------*/
+void *func_timer(void *arg)
 {
-    if (thread_params == NULL)
-    {
-        return NULL;
-    }
-
-    timer_node_t *thread_data = (timer_node_t *)thread_params;
-    struct timespec ts;
-    time_t current_time;
-    struct tm *time_info;
+    timer_struct_t *thread_data = (timer_struct_t *)arg;
 
     while (!execution_flag)
     {
-        char time_buffer[BUFFER_SIZE] = {0};
-
-        if (0 != clock_gettime(CLOCK_MONOTONIC, &ts))
+        char buffer[BUFFER_SIZE] = {0};
+        if (0 != clock_gettime(CLOCK_MONOTONIC, thread_data->time_spec))  //obtain the current time.
         {
-            perror("Clock get time failed: ");
+            syslog(LOG_ERR, "Failed to get clock time");
+            exit(CLOCK_GETTIME_FAILED);
+        }
+        thread_data->time_spec->tv_sec += PERIOD;
+
+        if (0 != clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, thread_data->time_spec, NULL)) //used to make the thread sleep until a specific time.
+        {
+            syslog(LOG_ERR, "File to sleep for nanoseconds");
+            exit(CLOCK_NANOSLEEP_FAILED);
             break;
         }
-        ts.tv_sec += PERIOD;
 
-        // Sleep until the next time interval
-        if (0 != clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &ts, NULL))
-        {
-            perror("clock nanosleep failed: ");
-            break;
-        }
-
-        // Check for termination signal
         if (execution_flag)
         {
             pthread_exit(NULL);
         }
 
-        // Get the current time
-        current_time = time(NULL);
-        if (current_time == ((time_t)-1))
+        *(thread_data->time_now) = time(NULL); //retrieving the epoch time
+        if (*(thread_data->time_now) == ((time_t)-1))
         {
-            perror("time since epoch failed: ");
-            break;
+            syslog(LOG_ERR, "Failed to retrieve epoch time");
+            exit(TIME_FAILED);
         }
 
-        // Format the time
-        time_info = localtime(&current_time);
-        if (time_info == NULL)
+        thread_data->details_time = localtime(thread_data->time_now);  //conversion from the time value to the broken-down time structure
+        if (thread_data->details_time == NULL)       
         {
-            perror("Local time failed: ");
-            break;
+            syslog(LOG_ERR, "Failed to get local time");
+            exit(LOCALTIME_FAILED);
         }
 
-        int len = strftime(time_buffer, BUFFER_SIZE, "Custom timestamp: %Y, %b, %d, %H:%M:%S\n", time_info);
-        if (len == 0)
+        //function to format the broken-down time and store it in the buffer.
+        int run_time = strftime(buffer, BUFFER_SIZE, "Custom timestamp: %Y, %b, %d, %H:%M:%S\n", thread_data->details_time);
+        if (run_time == 0)
         {
-            syslog(LOG_ERR, "Failed to get time");
+            syslog(LOG_ERR, "Failed to format time");
         }
 
-        // Write the formatted time to a file with mutex protection
-        if (0 != pthread_mutex_lock(thread_data->mutex))
+        if (0 != pthread_mutex_lock(thread_data->mutex))   //Locking a mutex
         {
-            perror("Mutex lock failed: ");
-            break;
+            syslog(LOG_ERR, "Failed to lock mutex");
+            exit(MUTEX_LOCK_FAILED);
         }
 
-        if (-1 == write(thread_data->fd, time_buffer, len))
+        if (-1 == write(thread_data->data_fd, buffer, run_time))  //writing the formatted timestamp to a file descripto
         {
-            perror("write timestamp failed: ");
+            syslog(LOG_ERR, "Failed to write timestamp");
+            exit(WRITE_FAILED);
         }
 
-        if (pthread_mutex_unlock(thread_data->mutex) != 0)
+        if (pthread_mutex_unlock(thread_data->mutex) != 0)  //Unlocking the mutex
         {
-            perror("Mutex unlock failed: ");
-            break;
+            syslog(LOG_ERR, "Failed to unlock mutex");
+            exit(MUTEX_UNLOCK_FAILED);
         }
     }
-
     return NULL;
 }
 
