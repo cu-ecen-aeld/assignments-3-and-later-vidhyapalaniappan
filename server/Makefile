@@ -1,11 +1,11 @@
 ##Makefile
 
 # Defining the compiler to use, which can be set externally using CROSS_COMPILE.
-CC=$(CROSS_COMPILE)gcc
+CC ?= $(CROSS_COMPILE)gcc
 
 # Defining compilation flags. -Wall: enable all warning messages. -Werror: treat warnings as errors.
-CFLAGS= -Wall -Werror -g 
-LDFLAG = -pthread -lrt 
+CFLAGS ?= -Wall -Werror -g 
+LDFLAG ?= -pthread -lrt 
 
 # Defining the target executable file name.
 TARGET = aesdsocket 
