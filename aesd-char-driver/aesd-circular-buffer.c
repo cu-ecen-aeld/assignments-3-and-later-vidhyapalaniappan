@@ -5,6 +5,8 @@
  * @author Dan Walkes
  * @date 2020-03-01
  * @copyright Copyright (c) 2020
+ * @modified by : Vidhya.PL
+ * @reference : ChatGPT - https://chat.openai.com/
  *
  */
 
@@ -32,23 +34,30 @@ struct aesd_buffer_entry *aesd_circular_buffer_find_entry_offset_for_fpos(struct
     /**
     * TODO: implement per description
     */
-  if (!buffer || !entry_offset_byte_rtn) {
+    
+  // checking whether the buffer pointer and entry_offset_byte_rtn pointer are null pointers   
+  if (!buffer || !entry_offset_byte_rtn) 
+  {
         return NULL;
-    }
+  }
 
-    size_t total_offset = 0;
-    int read_offset = buffer->out_offs;
+   size_t sum_offset = 0; //variable is used to keep track of the cumulative character offset within a circular buffer as the function 
+   int given_offset = buffer->out_offs;  //to keep track of the index of the buffer entry being currently examined in the circular buffer
 
-    for (int i = 0; i < AESDCHAR_MAX_WRITE_OPERATIONS_SUPPORTED; i++) {
-        if (char_offset < total_offset + buffer->entry[read_offset].size) {
-            if (entry_offset_byte_rtn) {
-                *entry_offset_byte_rtn = char_offset - total_offset;
-            }
-            return &buffer->entry[read_offset];
-        }
-
-        total_offset += buffer->entry[read_offset].size;
-        read_offset = (read_offset + 1) % AESDCHAR_MAX_WRITE_OPERATIONS_SUPPORTED;
+   for (int i = 0; i < AESDCHAR_MAX_WRITE_OPERATIONS_SUPPORTED; i++)  //to iterate over buffer entries
+   {
+       if (char_offset < sum_offset + buffer->entry[given_offset].size) //checking if the char_offset falls within the range of characters covered by the current buffer entry.
+       {
+           if (entry_offset_byte_rtn) //checking if entry_offset_byte_rtn is not a null pointer
+           {
+            
+               *entry_offset_byte_rtn = char_offset - sum_offset;  // Calculate the byte offset within the entry.
+           }
+           return &buffer->entry[given_offset];  // Return the corresponding buffer entry.
+       }
+        
+       sum_offset += buffer->entry[given_offset].size; //updating the sum_offset as the function moves from one entry to the next
+       given_offset = (given_offset + 1) % AESDCHAR_MAX_WRITE_OPERATIONS_SUPPORTED; //to ensure that the function iterates through all available buffer entries and the circular buffer structure is properly maintained
     }
     return NULL;
 }
@@ -65,20 +74,24 @@ void aesd_circular_buffer_add_entry(struct aesd_circular_buffer *buffer, const s
     /**
     * TODO: implement per description
     */
-        // Check if the buffer is full
-    if (!buffer || !add_entry) {
+        
+    //checking if the pointer buffer and the pointer add_entry are null pointers    
+    if (!buffer || !add_entry) 
+    {
         return;
     }
 
-    buffer->entry[buffer->in_offs] = *add_entry;
+    buffer->entry[buffer->in_offs] = *add_entry;  //adding the add_entry to the circular buffer at the current insertion position.
 
-    if (buffer->full) {
+    if (buffer->full) //If full, out_offs counter which is used to keep track of the position where entries are being removed is incremented
+    {
         buffer->out_offs = (buffer->out_offs + 1) % AESDCHAR_MAX_WRITE_OPERATIONS_SUPPORTED;
     }
 
-    buffer->in_offs = (buffer->in_offs + 1) % AESDCHAR_MAX_WRITE_OPERATIONS_SUPPORTED;
+    buffer->in_offs = (buffer->in_offs + 1) % AESDCHAR_MAX_WRITE_OPERATIONS_SUPPORTED;  //incrementing the in_offs counter to prepare for the next insertion
 
-    if (buffer->in_offs == buffer->out_offs) {
+    if ((buffer->in_offs == buffer->out_offs) && (!(buffer->full))) //checking if circular buffer is now full
+    {
         buffer->full = true;
     }
 }
