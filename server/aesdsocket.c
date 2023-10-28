@@ -32,7 +32,7 @@
 
 /*Defining MACROS*/
 #define PORT 9000
-#define DATA_FILE "/var/tmp/aesdsocketdata"
+//#define DATA_FILE "/var/tmp/aesdsocketdata"
 #define BUFFER_SIZE 1024
 #define MAX_BACKLOG 15
 #define MAX_IP_LEN INET_ADDRSTRLEN
@@ -55,6 +55,13 @@
 #define TIME_FAILED             -14
 #define LOCALTIME_FAILED        -15
 
+#define USE_AESD_CHAR_DEVICE (1)
+
+#if (USE_AESD_CHAR_DEVICE == 1)
+	#define DATA_FILE "/dev/aesdchar"
+#else 
+	#define DATA_FILE "/var/tmp/aesdsocketdata"
+#endif
 /*Global variables*/
 int execution_flag = 0;
 int sock_fd;
@@ -77,7 +84,10 @@ typedef struct
     int client_fd;  //Stores the client socket descriptor.
     int data_fd;   //Stores a file descriptor of destination file
     struct sockaddr_in *client_addr; //client address
+    
+    #if (USE_AESD_CHAR_DEVICE == 0)
     pthread_mutex_t *mutex;  //for thread mutex
+    #endif
     
 }thread_parameters_t;
 
@@ -92,6 +102,7 @@ pthread_mutex_t mutex_lock = PTHREAD_MUTEX_INITIALIZER;  //Declaring a mutex loc
 SLIST_HEAD(slisthead, slist_data_s) head;   //Defining a Singly linked list
 slist_data_t *node = NULL; 
 
+#if (USE_AESD_CHAR_DEVICE == 0)
 /*Structure for Timer node*/
 typedef struct
 {
@@ -102,6 +113,7 @@ typedef struct
     time_t *time_now;
     struct tm *details_time;
 }timer_struct_t;
+#endif
 
 /*----------------------------------------------------------------------------
  int main(int argc, char **argv)
@@ -183,6 +195,7 @@ int main(int argc, char **argv)
         return -1;
     }
 
+#if (USE_AESD_CHAR_DEVICE == 0)
     pthread_mutex_t mutex; //initializing the mutex
     pthread_mutex_init(&mutex, NULL);
 
@@ -207,6 +220,7 @@ int main(int argc, char **argv)
     {
         syslog(LOG_DEBUG, "Thread create successful. thread = %ld", timer_struct.tid);
     }
+#endif
 
     struct sockaddr_storage new_addr;
     SLIST_INIT(&head); //Linking the head of linked list
@@ -228,7 +242,9 @@ int main(int argc, char **argv)
 
 		node->thread_data.client_fd = client_fd;
 		node->thread_data.thread_complete = 0;
+	#if (USE_AESD_CHAR_DEVICE == 0)	
 		node->thread_data.mutex = &mutex;
+	#endif	
         node->thread_data.data_fd = data_fd;
         node->thread_data.client_addr = (struct sockaddr_in *)&new_addr;
 
@@ -275,8 +291,10 @@ int main(int argc, char **argv)
         perror("close fd failed: ");
     }
 
+#if (USE_AESD_CHAR_DEVICE == 0)
     pthread_join(timer_struct.tid, NULL);  //Joining timer structures
     pthread_mutex_destroy(&mutex); //Destroying the pthread
+#endif
 
     closelog(); 
     return 0;
@@ -477,11 +495,13 @@ void *multi_thread_handler(void *arg)
     syslog(LOG_INFO, "Accepted connection from %s", client_ip);
     
     //Locking thread mutex
+#if (USE_AESD_CHAR_DEVICE == 0)
     if (pthread_mutex_lock(thread_data->mutex) == -1)
     {
         syslog(LOG_ERR,"Failed to lock mutex");
         exit(MUTEX_LOCK_FAILED);
     }
+#endif    
 
     //reading data from the client socket in chunks of up to BUFFER_SIZE bytes using the recv function.
     while((bytes_received = recv(thread_data->client_fd, recv_buffer, BUFFER_SIZE, 0))>0)
@@ -496,12 +516,13 @@ void *multi_thread_handler(void *arg)
             break;
         }
     }
-
+#if (USE_AESD_CHAR_DEVICE == 0)
     if (lseek(data_fd, 0, SEEK_SET) == -1)
     {
         syslog(LOG_ERR,"Failed: lseek");
         exit(LSEEK_FAILED);
     }
+#endif
 
     //reading data from the data file into the buffer in chunks of up to BUFFER_SIZE bytes using the read function
     while((bytes_read = read(data_fd, send_buffer, BUFFER_SIZE) )> 0)
@@ -513,12 +534,13 @@ void *multi_thread_handler(void *arg)
         }
     }
 
+#if (USE_AESD_CHAR_DEVICE == 0)
     if (pthread_mutex_unlock(thread_data->mutex) == -1)   //unlocking the mutex back
     {
         syslog(LOG_ERR,"Failed to unlock mutex\n");
         exit(MUTEX_UNLOCK_FAILED);
     }
-
+#endif
     close(thread_data->client_fd);
     thread_data->thread_complete = 1;
     free(recv_buffer);
@@ -534,6 +556,7 @@ void *func_timer(void *arg)
  *Return : none
  *
  *----------------------------------------------------------------------------*/
+#if (USE_AESD_CHAR_DEVICE == 0)
 void *func_timer(void *arg)
 {
     timer_struct_t *thread_data = (timer_struct_t *)arg;
@@ -601,5 +624,5 @@ void *func_timer(void *arg)
     }
     return NULL;
 }
-
+#endif
 
