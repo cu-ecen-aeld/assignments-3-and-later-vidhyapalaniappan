@@ -6,7 +6,7 @@
  * Linux Device Drivers example code.
  *
  * @author Dan Walkes
- * @date 2019-10-22 modified: 3/13/2022
+ * @date 2019-10-22
  * @copyright Copyright (c) 2019
  *
  */
@@ -16,192 +16,176 @@
 #include <linux/printk.h>
 #include <linux/types.h>
 #include <linux/cdev.h>
-#include <linux/slab.h>
 #include <linux/fs.h> // file_operations
+#include <linux/slab.h>
 #include "aesdchar.h"
-int aesd_major =   0; // use dynamic major
-int aesd_minor =   0;
+
+int aesd_major = 0; // use dynamic major
+int aesd_minor = 0;
 
 MODULE_AUTHOR("Vidhya. PL");
 MODULE_LICENSE("Dual BSD/GPL");
 
 struct aesd_dev aesd_device;
 
-/**
- * @desc the open call used to get the character device(cdev) from aesd_dev structure.
- * @param inode the kernel inode structure.
- * @param filp the kernel file structure passed from caller
- * @return function exit status
- */
 int aesd_open(struct inode *inode, struct file *filp)
 {
-struct aesd_dev *dev;
+    struct aesd_dev *dev_struct;
+    PDEBUG("open");
+    /**
+     * TODO: handle open
+     */
+    dev_struct = container_of(inode->i_cdev, struct aesd_dev, cdev);
+    filp->private_data = dev_struct;
 
-PDEBUG("open");
-
-/*store cdev in inode.ic_dev, and store in private data
- for future reference*/
-dev = container_of(inode->i_cdev, struct aesd_dev, cdev);
-filp->private_data = dev;
-
-return 0;
-}
-
-/**
- * @desc the release system call used to release andy kernel resources.
- * @param inode the kernel inode structure.
- * @param filp the kernel file structure passed from caller
- * @return function exit status
- */
-int aesd_release(struct inode *inode, struct file *filp)
-{
-PDEBUG("release");
-
-return 0;
-}
-
-/**
- * @desc the release system call used to release andy kernel resources.
- * @param filp the kernel file structure passed from caller.
- * @param buf the buffer pointer at which the read data needs to be stored.
- * @param count the number of bytes required to be read from kernel buffer.
- * @param f_pos the entry offset location in kernel buffer from where data will be read.
- * @return no of bytes successfully read.
- */
-ssize_t aesd_read(struct file *filp, char __user *buf, size_t count,
-                loff_t *f_pos)
-{
-  ssize_t retval = 0;
-struct aesd_dev *dev;
-
-//entry and offset for circular buffer
-struct aesd_buffer_entry *read_entry = NULL;
-ssize_t read_offset = 0;
-ssize_t unread_bytes = 0;
-ssize_t bytes_read = 0;
-
-PDEBUG("read %zu bytes with offset %lld",count,*f_pos);
-printk(KERN_DEBUG "read %zu bytes with offset %lld",count,*f_pos);
-
-//get the skull device from file structure
-dev = (struct aesd_dev*) filp->private_data;
-
-//put error checks here, if count is zero, all other parameters are not null
-if(filp == NULL || buf == NULL || f_pos == NULL){
-return -EFAULT; //bad address
-}
-
-//lock on mutex here, preferrable interruptable, check for error
-if(mutex_lock_interruptible(&dev->lock)){
-PDEBUG(KERN_ERR "could not acquire mutex lock");
-return -ERESTARTSYS; //check this
-}
-
-//find the read entry, and offset for given f_pos
-read_entry = aesd_circular_buffer_find_entry_offset_for_fpos(&(dev->cir_buff), *f_pos, &read_offset);
-if(read_entry == NULL){
-goto error_exit;
-}
-//else{
-
-/*check if count is greater that current max read size, then limit
- max_read_size = entry_size - read_offset
-*/
-if(count > (read_entry->size - read_offset))
-{
-bytes_read = read_entry->size - read_offset;
-}
-else{
-bytes_read = count;
-}
-
-//}
-
-//now read using copy_to_user
-unread_bytes = copy_to_user(buf, (read_entry->buffptr + read_offset), bytes_read);
-
-//return whatever is copied and update fpos accordingly
-retval = bytes_read;
-//*f_pos += retval;
-*f_pos += bytes_read;
-
-error_exit:
-mutex_unlock(&(dev->lock));
-
-return retval;
-}
-
-static ssize_t write_to_buffer(struct aesd_dev *dev, const char __user *buf, size_t count) {
-    ssize_t unwritten_bytes = copy_from_user((void *)(dev->buff_entry.buffptr + dev->buff_entry.size), buf, count);
-    dev->buff_entry.size += (count - unwritten_bytes);
-    return (count - unwritten_bytes);
-}
-
-static int handle_circular_buffer(struct aesd_dev *dev, const char *new_entry) {
-    if (new_entry) {
-        kfree(new_entry);
-    }
-    dev->buff_entry.buffptr = NULL;
-    dev->buff_entry.size = 0;
     return 0;
 }
 
-/**
- * @desc the release system call used to release andy kernel resources.
- * @param filp the kernel file structure passed from caller.
- * @param buf the buffer pointer which contains the data to be written at kernel buffer entry
- * @param count the number of bytes required to be written to kernel buffer.
- * @param f_pos the file postion location which will be updated after each write.
- * @return no of bytes successfully written.
- */
-ssize_t aesd_write(struct file *filp, const char __user *buf, size_t count,
-                loff_t *f_pos)
+int aesd_release(struct inode *inode, struct file *filp)
 {
-struct aesd_dev *dev;
-const char *new_entry = NULL;
-ssize_t retval = -ENOMEM;
-//ssize_t unwritten_bytes = 0;
-int circular_buffer_error;
-PDEBUG("write %zu bytes with offset %lld",count,*f_pos);
-
-//cast the aesd_device from private data
-dev = (struct aesd_dev*) filp->private_data;
-
-//lock the mutex
-if(mutex_lock_interruptible(&(dev->lock))){
-PDEBUG(KERN_ERR "could not acquire mutex lock");
-return -ERESTARTSYS;
+    PDEBUG("release");
+    /**
+     * TODO: handle release
+     */
+    return 0;
 }
 
+ssize_t aesd_read(struct file *filp, char __user *buf, size_t count, loff_t *f_pos)
+{
+    ssize_t retval = 0;
+    ssize_t bytes_unread = 0;
+    ssize_t read_bytes = 0;
+    ssize_t offset_val = 0;
 
-if (dev->buff_entry.size == 0) {
-        dev->buff_entry.buffptr = kmalloc(count * sizeof(char), GFP_KERNEL);
-    } else {
-        dev->buff_entry.buffptr = krealloc(dev->buff_entry.buffptr, (dev->buff_entry.size + count) * sizeof(char), GFP_KERNEL);
+    struct aesd_dev *device_struct;
+
+    struct aesd_buffer_entry *read_buffer_entry = NULL;
+
+
+    printk(KERN_DEBUG "read %zu bytes with offset %lld",count,*f_pos);
+    PDEBUG("read %zu bytes with offset %lld",count,*f_pos);
+    /**
+     * TODO: handle read
+     */
+
+    device_struct = (struct aesd_dev*) filp->private_data;
+
+    if(filp == NULL || buf == NULL || f_pos == NULL)
+    {
+        return -EFAULT; 
     }
 
-    if (dev->buff_entry.buffptr == NULL) {
-        //PDEBUG(dev->buff_entry.size == 0 ? "kmalloc error" : "krealloc error");  //fix this debug message!!
-        mutex_unlock(&dev->lock);
+    if(mutex_lock_interruptible(&device_struct->mutex_lock))
+    {
+        printk(KERN_ALERT "Mutex lock failed");
+        return -ERESTARTSYS; 
+    }
+
+    read_buffer_entry = aesd_circular_buffer_find_entry_offset_for_fpos(&(device_struct->cbuff), *f_pos, &offset_val);
+    if(read_buffer_entry == NULL)
+    {
+        mutex_unlock(&(device_struct->mutex_lock));
+        return retval;
+    }
+
+    if(count > (read_buffer_entry->size - offset_val))
+    {
+        read_bytes = read_buffer_entry->size - offset_val;
+    }
+    else
+    {
+        read_bytes = count;
+    }
+
+    bytes_unread = copy_to_user(buf, (read_buffer_entry->buffptr + offset_val), read_bytes);
+
+    if(bytes_unread == 0)
+    {
+        printk(KERN_ALERT "successfully copied %ld bytes\n", read_bytes);
+    }
+    else
+    {
+        printk(KERN_ALERT "Failed to copied %ld bytes\n", read_bytes);
+        return -EFAULT;
+    }
+    retval = read_bytes;
+    *f_pos += read_bytes;
+    mutex_unlock(&(device_struct->mutex_lock));
+    return retval;
+}
+
+static ssize_t write_to_buffer(struct aesd_dev *device_struct, const char __user *buf, size_t count) 
+{
+    ssize_t bytes_unwritten = copy_from_user((void *)(device_struct->buffer_entry.buffptr + device_struct->buffer_entry.size), buf, count);
+    device_struct->buffer_entry.size += (count - bytes_unwritten);
+    return (count - bytes_unwritten);
+}
+
+static int handle_circular_buffer(struct aesd_dev *device_struct, const char *current_entry) 
+{
+    if (current_entry) 
+    {
+        kfree(current_entry);
+    }
+    device_struct->buffer_entry.buffptr = NULL;
+    device_struct->buffer_entry.size = 0;
+    return 0;
+}
+
+ssize_t aesd_write(struct file *filp, const char __user *buf, size_t count, loff_t *f_pos)
+{
+    ssize_t retval = -ENOMEM;
+    int buff_error;
+    int i;
+
+    struct aesd_dev *device_struct;
+    const char *current_entry = NULL;
+
+    device_struct = (struct aesd_dev*) filp->private_data;
+
+    PDEBUG("write %zu bytes with offset %lld",count,*f_pos);
+    /**
+     * TODO: handle write
+     */
+
+    if(mutex_lock_interruptible(&(device_struct->mutex_lock)))
+    {
+        printk(KERN_ALERT "Mutex lock failed");
+        return -ERESTARTSYS;
+    }
+
+    if (device_struct->buffer_entry.size == 0) 
+    {
+        device_struct->buffer_entry.buffptr = kmalloc(count * sizeof(char), GFP_KERNEL);
+    } 
+    else
+    {
+        device_struct->buffer_entry.buffptr = krealloc(device_struct->buffer_entry.buffptr, (device_struct->buffer_entry.size + count) * sizeof(char), GFP_KERNEL);
+    }
+
+    if (device_struct->buffer_entry.buffptr == NULL) 
+    {
+        mutex_unlock(&device_struct->mutex_lock);
         return -ENOMEM;
     }
 
-retval = write_to_buffer(dev, buf, count);
+    retval = write_to_buffer(device_struct, buf, count);
 
-    if (memchr(dev->buff_entry.buffptr, '\n', dev->buff_entry.size)) {
-        new_entry = aesd_circular_buffer_add_entry(&dev->cir_buff, &dev->buff_entry);
-        circular_buffer_error = handle_circular_buffer(dev, new_entry);
-        if (circular_buffer_error) {
-            mutex_unlock(&dev->lock);
-            return circular_buffer_error;
+    for (i = 0; i < device_struct->buffer_entry.size; i++) 
+    {
+        if (device_struct->buffer_entry.buffptr[i] == '\n') 
+        {
+            current_entry = aesd_circular_buffer_add_entry(&device_struct->cbuff, &device_struct->buffer_entry);
+            buff_error = handle_circular_buffer(device_struct, current_entry);
+            if (buff_error) {
+                mutex_unlock(&device_struct->mutex_lock);
+                return buff_error;
+            }
+            break;
         }
     }
-
-PDEBUG("not doing k_free for now");
-
-mutex_unlock(&dev->lock);
-
-return retval;
+    mutex_unlock(&device_struct->mutex_lock);
+    return retval;
 }
 
 struct file_operations aesd_fops = {
@@ -212,79 +196,69 @@ struct file_operations aesd_fops = {
 .release =  aesd_release,
 };
 
-/**
- * @desc this function is used to initialize the device and add it.
- * @return return value of mkdev.
- */
 static int aesd_setup_cdev(struct aesd_dev *dev)
 {
-int err, devno = MKDEV(aesd_major, aesd_minor);
+    int err, devno = MKDEV(aesd_major, aesd_minor);
 
-cdev_init(&dev->cdev, &aesd_fops);
-dev->cdev.owner = THIS_MODULE;
-dev->cdev.ops = &aesd_fops;
-err = cdev_add (&dev->cdev, devno, 1);
-if (err) {
-printk(KERN_ERR "Error %d adding aesd cdev", err);
-}
-return err;
+    cdev_init(&dev->cdev, &aesd_fops);
+    dev->cdev.owner = THIS_MODULE;
+    dev->cdev.ops = &aesd_fops;
+    err = cdev_add (&dev->cdev, devno, 1);
+    if (err) {
+        printk(KERN_ERR "Error %d adding aesd cdev", err);
+    }
+    return err;
 }
 
-/**
- * @desc this function is used to register the device and initialize the kernel
- * data structures.
- * @return the return value of register and init functions.
- */
+
+
 int aesd_init_module(void)
 {
-dev_t dev = 0;
-int result;
-result = alloc_chrdev_region(&dev, aesd_minor, 1,
-"aesdchar");
-aesd_major = MAJOR(dev);
-if (result < 0) {
-printk(KERN_WARNING "Can't get major %d\n", aesd_major);
-return result;
+    dev_t dev = 0;
+    int result;
+    result = alloc_chrdev_region(&dev, aesd_minor, 1,
+            "aesdchar");
+    aesd_major = MAJOR(dev);
+    if (result < 0) {
+        printk(KERN_WARNING "Can't get major %d\n", aesd_major);
+        return result;
+    }
+    memset(&aesd_device,0,sizeof(struct aesd_dev));
+
+    /**
+     * TODO: initialize the AESD specific portion of the device
+     */
+    mutex_init(&aesd_device.mutex_lock);
+    aesd_circular_buffer_init(&aesd_device.cbuff);
+    result = aesd_setup_cdev(&aesd_device);
+
+    if( result ) {
+        unregister_chrdev_region(dev, 1);
+    }
+    return result;
+
 }
-memset(&aesd_device,0,sizeof(struct aesd_dev));
 
-//Initialize the mutex and circular buffer
-mutex_init(&aesd_device.lock);
-aesd_circular_buffer_init(&aesd_device.cir_buff);
-
-result = aesd_setup_cdev(&aesd_device);
-
-if( result ) {
-unregister_chrdev_region(dev, 1);
-}
-return result;
-
-}
-
-/**
- * @desc this function is used to unregister the device and deallocated all the kernel data structures and delte the device
- * @return none.
- */
 void aesd_cleanup_module(void)
 {
-//free circular buffer entries
-struct aesd_buffer_entry *entry = NULL;
-uint8_t index = 0;
+    dev_t devno = MKDEV(aesd_major, aesd_minor);
+    struct aesd_buffer_entry *entry = NULL;
+    uint8_t index = 0;
+    cdev_del(&aesd_device.cdev);
 
-dev_t devno = MKDEV(aesd_major, aesd_minor);
+    /**
+     * TODO: cleanup AESD specific poritions here as necessary
+     */
+    kfree(aesd_device.buffer_entry.buffptr);
+    AESD_CIRCULAR_BUFFER_FOREACH(entry, &aesd_device.cbuff, index)
+    {
+        if(entry->buffptr != NULL)
+        {
+            kfree(entry->buffptr);
+        }
+    }
 
-cdev_del(&aesd_device.cdev);
-
-//free the buff_entry buffpte
-kfree(aesd_device.buff_entry.buffptr);
-
-AESD_CIRCULAR_BUFFER_FOREACH(entry, &aesd_device.cir_buff, index){
-if(entry->buffptr != NULL){
-kfree(entry->buffptr);
-}
-}
-
-unregister_chrdev_region(devno, 1);
+    unregister_chrdev_region(devno, 1);
 }
 
 

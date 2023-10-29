@@ -16,7 +16,7 @@
 #ifdef AESD_DEBUG
 #  ifdef __KERNEL__
      /* This one if debugging is on, and kernel space */
-#    define PDEBUG(fmt, args...) printk( KERN_ALERT "aesdchar: " fmt, ## args)
+#    define PDEBUG(fmt, args...) printk( KERN_DEBUG "aesdchar: " fmt, ## args)
 #  else
      /* This one for user space */
 #    define PDEBUG(fmt, args...) fprintf(stderr, fmt, ## args)
@@ -27,13 +27,13 @@
 
 struct aesd_dev
 {
-	/**
-	 * TODO: Add structure(s) and locks needed to complete assignment requirements
-	 */
-	struct aesd_circular_buffer cir_buff;
-	struct aesd_buffer_entry buff_entry;
-	struct mutex lock;
-	struct cdev cdev;	  /* Char device structure		*/
+    /**
+     * TODO: Add structure(s) and locks needed to complete assignment requirements
+     */
+    struct cdev cdev;     /* Char device structure      */
+    struct aesd_circular_buffer cbuff;
+    struct mutex mutex_lock;
+    struct aesd_buffer_entry buffer_entry;
 };
 
 
