@@ -35,16 +35,17 @@ struct aesd_buffer_entry *aesd_circular_buffer_find_entry_offset_for_fpos(struct
     * TODO: implement per description
     */
     
+   size_t sum_offset = 0; //variable is used to keep track of the cumulative character offset within a circular buffer as the function 
+   int given_offset = buffer->out_offs;  //to keep track of the index of the buffer entry being currently examined in the circular buffer
+   int i;
+    
   // checking whether the buffer pointer and entry_offset_byte_rtn pointer are null pointers   
   if (!buffer || !entry_offset_byte_rtn) 
   {
         return NULL;
   }
 
-   size_t sum_offset = 0; //variable is used to keep track of the cumulative character offset within a circular buffer as the function 
-   int given_offset = buffer->out_offs;  //to keep track of the index of the buffer entry being currently examined in the circular buffer
-
-   for (int i = 0; i < AESDCHAR_MAX_WRITE_OPERATIONS_SUPPORTED; i++)  //to iterate over buffer entries
+   for (i = 0; i < AESDCHAR_MAX_WRITE_OPERATIONS_SUPPORTED; i++)  //to iterate over buffer entries
    {
        if (char_offset < sum_offset + buffer->entry[given_offset].size) //checking if the char_offset falls within the range of characters covered by the current buffer entry.
        {
@@ -74,8 +75,9 @@ char *aesd_circular_buffer_add_entry(struct aesd_circular_buffer *buffer, const 
     /**
     * TODO: implement per description
     */
-    
-    char *return_value = NULL;    
+
+    char *return_value = NULL;
+
     //checking if the pointer buffer and the pointer add_entry are null pointers    
     if (!buffer || !add_entry) 
     {
@@ -86,7 +88,7 @@ char *aesd_circular_buffer_add_entry(struct aesd_circular_buffer *buffer, const 
 
     if (buffer->full) //If full, out_offs counter which is used to keep track of the position where entries are being removed is incremented
     {
-    	return_value = (char *)buffer->entry[buffer->out_offs].buffptr;
+        return_value = (char *)buffer->entry[buffer->out_offs].buffptr;
         buffer->out_offs = (buffer->out_offs + 1) % AESDCHAR_MAX_WRITE_OPERATIONS_SUPPORTED;
     }
 

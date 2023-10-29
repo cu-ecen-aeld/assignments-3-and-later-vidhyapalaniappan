@@ -9,12 +9,13 @@
 #define AESD_CIRCULAR_BUFFER_H
 
 #ifdef __KERNEL__
-#include <linux/types.h>
+#include <linux/mutex.h>
 #else
 #include <stddef.h> // size_t
 #include <stdint.h> // uintx_t
 #include <stdbool.h>
 #endif
+
 
 #define AESDCHAR_MAX_WRITE_OPERATIONS_SUPPORTED 10
 
@@ -49,6 +50,7 @@ struct aesd_circular_buffer
      * set to true when the buffer entry structure is full
      */
     bool full;
+    //struct mutex mutex_lock;
 };
 
 extern struct aesd_buffer_entry *aesd_circular_buffer_find_entry_offset_for_fpos(struct aesd_circular_buffer *buffer,
