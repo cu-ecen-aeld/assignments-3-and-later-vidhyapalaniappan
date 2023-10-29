@@ -32,7 +32,6 @@
 
 /*Defining MACROS*/
 #define PORT 9000
-//#define DATA_FILE "/var/tmp/aesdsocketdata"
 #define BUFFER_SIZE 1024
 #define MAX_BACKLOG 15
 #define MAX_IP_LEN INET_ADDRSTRLEN
@@ -62,6 +61,7 @@
 #else 
 	#define DATA_FILE "/var/tmp/aesdsocketdata"
 #endif
+
 /*Global variables*/
 int execution_flag = 0;
 int sock_fd;

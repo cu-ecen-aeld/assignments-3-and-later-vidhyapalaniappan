@@ -8,7 +8,9 @@
  * @author Dan Walkes
  * @date 2019-10-22
  * @copyright Copyright (c) 2019
- *
+ * @modified Vidhya. PL
+ * @modified on 2023-10-29
+ * @reference - aesd_write function : https://github.com/cu-ecen-aeld/assignments-3-and-later-vishalraj3112/blob/main/aesd-char-driver/main.c
  */
 
 #include <linux/module.h>
@@ -30,13 +32,13 @@ struct aesd_dev aesd_device;
 
 int aesd_open(struct inode *inode, struct file *filp)
 {
-    struct aesd_dev *dev_struct;
+    struct aesd_dev *dev_struct; //pointer to reference the character device being opened
     PDEBUG("open");
     /**
      * TODO: handle open
      */
-    dev_struct = container_of(inode->i_cdev, struct aesd_dev, cdev);
-    filp->private_data = dev_struct;
+    dev_struct = container_of(inode->i_cdev, struct aesd_dev, cdev); //from lecture slides
+    filp->private_data = dev_struct; //associating the opened file with the device structure
 
     return 0;
 }
@@ -52,14 +54,14 @@ int aesd_release(struct inode *inode, struct file *filp)
 
 ssize_t aesd_read(struct file *filp, char __user *buf, size_t count, loff_t *f_pos)
 {
-    ssize_t retval = 0;
-    ssize_t bytes_unread = 0;
-    ssize_t read_bytes = 0;
-    ssize_t offset_val = 0;
+    ssize_t retval = 0;  //variable to store the return value
+    ssize_t bytes_unread = 0;  //variable to track the unread bytes
+    ssize_t read_bytes = 0;  //variable to track the read bytes
+    ssize_t offset_val = 0; ////variable to track the offset byte
 
-    struct aesd_dev *device_struct;
+    struct aesd_dev *device_struct;  // used to reference the device structure associated with the character device
 
-    struct aesd_buffer_entry *read_buffer_entry = NULL;
+    struct aesd_buffer_entry *read_buffer_entry = NULL; //This pointer to reference a buffer entry within a circular buffer.
 
 
     printk(KERN_DEBUG "read %zu bytes with offset %lld",count,*f_pos);
@@ -68,35 +70,39 @@ ssize_t aesd_read(struct file *filp, char __user *buf, size_t count, loff_t *f_p
      * TODO: handle read
      */
 
-    device_struct = (struct aesd_dev*) filp->private_data;
+    device_struct = (struct aesd_dev*) filp->private_data;  //to access the device-specific data associated with the file
 
-    if(filp == NULL || buf == NULL || f_pos == NULL)
+    if(filp == NULL || buf == NULL || f_pos == NULL) //checking if any of the essential pointers is NULL
     {
         return -EFAULT; 
     }
 
-    if(mutex_lock_interruptible(&device_struct->mutex_lock))
+    if(mutex_lock_interruptible(&device_struct->mutex_lock)) //checking if obtaining a mutex is interrupted by a signal
     {
         printk(KERN_ALERT "Mutex lock failed");
         return -ERESTARTSYS; 
     }
 
+    //to find a buffer entry within a circular buffer associated with the device using f_pos
     read_buffer_entry = aesd_circular_buffer_find_entry_offset_for_fpos(&(device_struct->cbuff), *f_pos, &offset_val);
-    if(read_buffer_entry == NULL)
+    
+    if(read_buffer_entry == NULL) //checking if the buffer entry is found
     {
         mutex_unlock(&(device_struct->mutex_lock));
         return retval;
     }
 
+    //checking if the requested count is greater than the remaining bytes in the buffer entry
     if(count > (read_buffer_entry->size - offset_val))
     {
-        read_bytes = read_buffer_entry->size - offset_val;
+        read_bytes = read_buffer_entry->size - offset_val;  //if true, setting the read_byes to remaining bytes
     }
     else
     {
         read_bytes = count;
     }
 
+    //copying data from the kernel spacevto user space
     bytes_unread = copy_to_user(buf, (read_buffer_entry->buffptr + offset_val), read_bytes);
 
     if(bytes_unread == 0)
@@ -108,27 +114,31 @@ ssize_t aesd_read(struct file *filp, char __user *buf, size_t count, loff_t *f_p
         printk(KERN_ALERT "Failed to copied %ld bytes\n", read_bytes);
         return -EFAULT;
     }
-    retval = read_bytes;
-    *f_pos += read_bytes;
-    mutex_unlock(&(device_struct->mutex_lock));
+    retval = read_bytes;  //number of bytes successfully read
+    *f_pos += read_bytes; //updating the file position reflect the new position after the read operation
+    mutex_unlock(&(device_struct->mutex_lock)); //releasing the mutex
     return retval;
 }
 
+//The function is responsible for writing data from user space to a kernel buffer
 static ssize_t write_to_buffer(struct aesd_dev *device_struct, const char __user *buf, size_t count) 
 {
+    //copying data from user space to kernel space
     ssize_t bytes_unwritten = copy_from_user((void *)(device_struct->buffer_entry.buffptr + device_struct->buffer_entry.size), buf, count);
+    //updating the size of the kernel buffer
     device_struct->buffer_entry.size += (count - bytes_unwritten);
-    return (count - bytes_unwritten);
+    return (count - bytes_unwritten); //returning the number of bytes successfully written to the kernel buffer
 }
 
+//function for managing a circular buffer associated with device driver
 static int handle_circular_buffer(struct aesd_dev *device_struct, const char *current_entry) 
 {
-    if (current_entry) 
+    if (current_entry)  //checking if there is a valid current entry in the circular buffer
     {
-        kfree(current_entry);
+        kfree(current_entry); //free the memory associated with the current_entry
     }
-    device_struct->buffer_entry.buffptr = NULL;
-    device_struct->buffer_entry.size = 0;
+    device_struct->buffer_entry.buffptr = NULL; //clearing the buffer pointer, indicating that the circular buffer is now empty.
+    device_struct->buffer_entry.size = 0; //indicating that the size of the circular buffer is now zero, effectively empty.
     return 0;
 }
 
@@ -154,16 +164,17 @@ ssize_t aesd_write(struct file *filp, const char __user *buf, size_t count, loff
         return -ERESTARTSYS;
     }
 
+    //checking whether the size of the circular buffer is zero, indicating that it's empty
     if (device_struct->buffer_entry.size == 0) 
     {
         device_struct->buffer_entry.buffptr = kmalloc(count * sizeof(char), GFP_KERNEL);
     } 
-    else
+    else //If the buffer is not empty, this block is executed
     {
         device_struct->buffer_entry.buffptr = krealloc(device_struct->buffer_entry.buffptr, (device_struct->buffer_entry.size + count) * sizeof(char), GFP_KERNEL);
     }
 
-    if (device_struct->buffer_entry.buffptr == NULL) 
+    if (device_struct->buffer_entry.buffptr == NULL) //checking whether memory allocation or reallocation was successful
     {
         mutex_unlock(&device_struct->mutex_lock);
         return -ENOMEM;
@@ -173,11 +184,12 @@ ssize_t aesd_write(struct file *filp, const char __user *buf, size_t count, loff
 
     for (i = 0; i < device_struct->buffer_entry.size; i++) 
     {
-        if (device_struct->buffer_entry.buffptr[i] == '\n') 
+        if (device_struct->buffer_entry.buffptr[i] == '\n')  //checking if a newline character is encountered in the circular buffer
         {
             current_entry = aesd_circular_buffer_add_entry(&device_struct->cbuff, &device_struct->buffer_entry);
             buff_error = handle_circular_buffer(device_struct, current_entry);
-            if (buff_error) {
+            if (buff_error)  //checking if an error occurred during the circular buffer handling process
+            {
                 mutex_unlock(&device_struct->mutex_lock);
                 return buff_error;
             }
@@ -228,11 +240,12 @@ int aesd_init_module(void)
     /**
      * TODO: initialize the AESD specific portion of the device
      */
-    mutex_init(&aesd_device.mutex_lock);
-    aesd_circular_buffer_init(&aesd_device.cbuff);
+    mutex_init(&aesd_device.mutex_lock); //initializes the mutex
+    aesd_circular_buffer_init(&aesd_device.cbuff); //initializes a circular buffer within the aesd_device structure
     result = aesd_setup_cdev(&aesd_device);
 
-    if( result ) {
+    if( result )  //checking if an error occurred during the setup and registration of the character device
+    {
         unregister_chrdev_region(dev, 1);
     }
     return result;
@@ -249,12 +262,13 @@ void aesd_cleanup_module(void)
     /**
      * TODO: cleanup AESD specific poritions here as necessary
      */
+    //deallocates memory associated with the buffer pointed to by aesd_device.buffer_entry.buffptr 
     kfree(aesd_device.buffer_entry.buffptr);
     AESD_CIRCULAR_BUFFER_FOREACH(entry, &aesd_device.cbuff, index)
     {
-        if(entry->buffptr != NULL)
+        if(entry->buffptr != NULL) //If it's not `NULL, it means that there is memory associated with this entry
         {
-            kfree(entry->buffptr);
+            kfree(entry->buffptr); //deallocating memory associated with the buffptr
         }
     }
 
