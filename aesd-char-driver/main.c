@@ -222,12 +222,22 @@ int aesd_init_module(void)
 void aesd_cleanup_module(void)
 {
     dev_t devno = MKDEV(aesd_major, aesd_minor);
-
+    int i;
     cdev_del(&aesd_device.cdev);
 
     /**
      * TODO: cleanup AESD specific portions here as necessary
      */
+
+    for (i = 0; i < MAX_WRITE_COMMANDS; i++) {
+        if (aesd_device.aesd_write_commands[i].content) {
+            kfree(aesd_device.aesd_write_commands[i].content);
+            aesd_device.aesd_write_commands[i].content = NULL;
+        }
+    }
+
+    // Destroy the mutex
+    mutex_destroy(&aesd_device.mutex_lock);
 
     unregister_chrdev_region(devno, 1);
 }
