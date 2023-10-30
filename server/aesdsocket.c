@@ -102,7 +102,6 @@ pthread_mutex_t mutex_lock = PTHREAD_MUTEX_INITIALIZER;  //Declaring a mutex loc
 SLIST_HEAD(slisthead, slist_data_s) head;   //Defining a Singly linked list
 slist_data_t *node = NULL; 
 
-#if (USE_AESD_CHAR_DEVICE == 0)
 /*Structure for Timer node*/
 typedef struct
 {
@@ -113,7 +112,6 @@ typedef struct
     time_t *time_now;
     struct tm *details_time;
 }timer_struct_t;
-#endif
 
 /*----------------------------------------------------------------------------
  int main(int argc, char **argv)
