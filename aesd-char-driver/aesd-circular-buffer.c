@@ -6,7 +6,7 @@
  * @date 2020-03-01
  * @copyright Copyright (c) 2020
  * @modified by : Vidhya.PL
- * @reference : ChatGPT - https://chat.openai.com/
+ * @reference and credits: aesd_circular_buffer_add_entry function - https://github.com/cu-ecen-aeld/assignments-3-and-later-vishalraj3112/blob/main/aesd-char-driver/aesd-circular-buffer.c
  *
  */
 
@@ -34,17 +34,17 @@ struct aesd_buffer_entry *aesd_circular_buffer_find_entry_offset_for_fpos(struct
     /**
     * TODO: implement per description
     */
-    
-   size_t sum_offset = 0; //variable is used to keep track of the cumulative character offset within a circular buffer as the function 
-   int given_offset = buffer->out_offs;  //to keep track of the index of the buffer entry being currently examined in the circular buffer
-   int i;
-    
+   
+  size_t sum_offset = 0; //variable is used to keep track of the cumulative character offset within a circular buffer as the function 
+  int given_offset = buffer->out_offs;  //to keep track of the index of the buffer entry being currently examined in the circular buffer
+  int i;
+   
   // checking whether the buffer pointer and entry_offset_byte_rtn pointer are null pointers   
   if (!buffer || !entry_offset_byte_rtn) 
   {
         return NULL;
   }
-
+   
    for (i = 0; i < AESDCHAR_MAX_WRITE_OPERATIONS_SUPPORTED; i++)  //to iterate over buffer entries
    {
        if (char_offset < sum_offset + buffer->entry[given_offset].size) //checking if the char_offset falls within the range of characters covered by the current buffer entry.
@@ -63,20 +63,22 @@ struct aesd_buffer_entry *aesd_circular_buffer_find_entry_offset_for_fpos(struct
     return NULL;
 }
 
-
 // Check if the circular buffer is full
-bool is_buffer_full(const struct aesd_circular_buffer *buffer) {
+bool is_buffer_full(const struct aesd_circular_buffer *buffer) 
+{
     return (buffer->in_offs == buffer->out_offs) && buffer->full;
 }
 
 // Handle rollover of the in_offs counter
-void handle_rollover(struct aesd_circular_buffer *buffer) {
+void handle_rollover(struct aesd_circular_buffer *buffer) 
+{
     if (buffer->in_offs == AESDCHAR_MAX_WRITE_OPERATIONS_SUPPORTED)
         buffer->in_offs = 0;
 }
 
 // Update the circular buffer when it's not full
-void update_buffer_not_full(struct aesd_circular_buffer *buffer, const struct aesd_buffer_entry *add_entry) {
+void update_buffer_not_full(struct aesd_circular_buffer *buffer, const struct aesd_buffer_entry *add_entry) 
+{
     buffer->entry[buffer->in_offs] = *add_entry;
     buffer->in_offs++;
     handle_rollover(buffer);
@@ -97,22 +99,33 @@ const char *update_buffer_full(struct aesd_circular_buffer *buffer, const struct
     return return_value;
 }
 
-const char *aesd_circular_buffer_add_entry(struct aesd_circular_buffer *buffer, const struct aesd_buffer_entry *add_entry) {
+/*********The initial logic did not account for rollover condition. So modified the aesd_circular_buffer_add_entry function*********/
+/**
+* Adds entry @param add_entry to @param buffer in the location specified in buffer->in_offs.
+* If the buffer was already full, overwrites the oldest entry and advances buffer->out_offs to the
+* new start location.
+* Any necessary locking must be handled by the caller
+* Any memory referenced in @param add_entry must be allocated by and/or must have a lifetime managed by the caller.
+*/
+const char *aesd_circular_buffer_add_entry(struct aesd_circular_buffer *buffer, const struct aesd_buffer_entry *add_entry)
+{
+    /**
+    * TODO: implement per description
+    */
+        
     char *return_value = NULL;
-
     if (!buffer || !add_entry) {
         return return_value;
     }
-
     if (is_buffer_full(buffer)) {
         return_value = (char *)update_buffer_full(buffer, add_entry);
-    } else {
+    } 
+    else 
+    {
         update_buffer_not_full(buffer, add_entry);
     }
-
     return return_value;
 }
-
 
 /**
 * Initializes the circular buffer described by @param buffer to an empty struct

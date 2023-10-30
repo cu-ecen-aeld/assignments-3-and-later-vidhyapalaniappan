@@ -10,7 +10,7 @@
  * @copyright Copyright (c) 2019
  * @modified Vidhya. PL
  * @modified on 2023-10-29
- * @reference - aesd_write function : https://github.com/cu-ecen-aeld/assignments-3-and-later-vishalraj3112/blob/main/aesd-char-driver/main.c
+ * @reference and credits- aesd_write function : https://github.com/cu-ecen-aeld/assignments-3-and-later-vishalraj3112/blob/main/aesd-char-driver/main.c
  */
 
 #include <linux/module.h>
