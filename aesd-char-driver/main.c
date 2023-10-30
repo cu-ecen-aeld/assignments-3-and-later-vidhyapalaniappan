@@ -263,7 +263,7 @@ void aesd_cleanup_module(void)
      * TODO: cleanup AESD specific poritions here as necessary
      */
     //deallocates memory associated with the buffer pointed to by aesd_device.buffer_entry.buffptr 
-    kfree(aesd_device.buffer_entry.buffptr);
+    //kfree(aesd_device.buffer_entry.buffptr);
     AESD_CIRCULAR_BUFFER_FOREACH(entry, &aesd_device.cbuff, index)
     {
         if(entry->buffptr != NULL) //If it's not `NULL, it means that there is memory associated with this entry
