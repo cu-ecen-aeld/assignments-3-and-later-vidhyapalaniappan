@@ -187,13 +187,13 @@ int main(int argc, char **argv)
 
     //Opening file with permisiions 0644 gave bad file descriptor error. So changed the arguments
     //opening a data file (DATA_FILE) for both reading and writing
-    data_fd = open(DATA_FILE, (O_CREAT | O_TRUNC | O_RDWR), (S_IRWXU | S_IRWXG | S_IROTH));
-    if(data_fd == -1)
-    {
-        closelog();
-        perror("Error opening socket file:");
-        return -1;
-    }
+    //data_fd = open(DATA_FILE, (O_CREAT | O_TRUNC | O_RDWR), (S_IRWXU | S_IRWXG | S_IROTH));
+    //if(data_fd == -1)
+    //{
+    //    closelog();
+    //    perror("Error opening socket file:");
+    //    return -1;
+    //}
 
 #if (USE_AESD_CHAR_DEVICE == 0)
     pthread_mutex_t mutex; //initializing the mutex
@@ -454,6 +454,14 @@ void *multi_thread_handler(void *arg)
  *----------------------------------------------------------------------------*/
 void *multi_thread_handler(void *arg)
 {
+    data_fd = open(DATA_FILE, (O_CREAT | O_TRUNC | O_RDWR), (S_IRWXU | S_IRWXG | S_IROTH));
+    if(data_fd == -1)
+    {
+        closelog();
+        perror("Error opening socket file:");
+        return NULL;
+    }
+
     char *recv_buffer = (char *)malloc(sizeof(char) * BUFFER_SIZE);   //buffer used to recieve data from the client
     if (recv_buffer == NULL) 
     {
@@ -542,6 +550,7 @@ void *multi_thread_handler(void *arg)
     }
 #endif
     close(thread_data->client_fd);
+    close(data_fd);
     thread_data->thread_complete = 1;
     free(recv_buffer);
     free(send_buffer);
