@@ -503,13 +503,12 @@ void *multi_thread_handler(void *arg)
     syslog(LOG_INFO, "Accepted connection from %s", client_ip);
     
     //Locking thread mutex
-#if (USE_AESD_CHAR_DEVICE == 0)
+
     if (pthread_mutex_lock(thread_data->mutex) == -1)
     {
         syslog(LOG_ERR,"Failed to lock mutex");
         exit(MUTEX_LOCK_FAILED);
     }
-#endif    
 
     //reading data from the client socket in chunks of up to BUFFER_SIZE bytes using the recv function.
     while((bytes_received = recv(thread_data->client_fd, recv_buffer, BUFFER_SIZE, 0))>0)
@@ -524,13 +523,6 @@ void *multi_thread_handler(void *arg)
             break;
         }
     }
-//#if (USE_AESD_CHAR_DEVICE == 0)
-//    if (lseek(data_fd, 0, SEEK_SET) == -1)
-//    {
-//        syslog(LOG_ERR,"Failed: lseek");
-//       exit(LSEEK_FAILED);
-//    }
-//#endif
 
     //reading data from the data file into the buffer in chunks of up to BUFFER_SIZE bytes using the read function
     while((bytes_read = read(data_fd, send_buffer, BUFFER_SIZE) )> 0)
@@ -542,13 +534,11 @@ void *multi_thread_handler(void *arg)
         }
     }
 
-#if (USE_AESD_CHAR_DEVICE == 0)
     if (pthread_mutex_unlock(thread_data->mutex) == -1)   //unlocking the mutex back
     {
         syslog(LOG_ERR,"Failed to unlock mutex\n");
         exit(MUTEX_UNLOCK_FAILED);
     }
-#endif
     close(thread_data->client_fd);
     close(data_fd);
     thread_data->thread_complete = 1;
