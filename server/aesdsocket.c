@@ -275,12 +275,12 @@ int main(int argc, char **argv)
 		}
 
     }
-
+#if (USE_AESD_CHAR_DEVICE == 0)
     if (unlink(DATA_FILE) == -1)
     {
         perror("unlink failed: ");
     }
-
+#endif
     if(-1 == close(sock_fd))
     {
         perror("close sock_fd failed: ");
@@ -377,11 +377,11 @@ static void exit_func()
     {
     	syslog(LOG_ERR, "Error closing data file");
     }
-
+#if (USE_AESD_CHAR_DEVICE == 0)
     if (unlink(DATA_FILE) == -1) {
         syslog(LOG_ERR, "Error removing data file: %m");
     }
-
+#endif
     if(close(data_fd) == -1)
     {
     	syslog(LOG_ERR, "Error closing client fd");
@@ -516,13 +516,13 @@ void *multi_thread_handler(void *arg)
             break;
         }
     }
-#if (USE_AESD_CHAR_DEVICE == 0)
-    if (lseek(data_fd, 0, SEEK_SET) == -1)
-    {
-        syslog(LOG_ERR,"Failed: lseek");
-        exit(LSEEK_FAILED);
-    }
-#endif
+//#if (USE_AESD_CHAR_DEVICE == 0)
+//    if (lseek(data_fd, 0, SEEK_SET) == -1)
+//    {
+//        syslog(LOG_ERR,"Failed: lseek");
+//       exit(LSEEK_FAILED);
+//    }
+//#endif
 
     //reading data from the data file into the buffer in chunks of up to BUFFER_SIZE bytes using the read function
     while((bytes_read = read(data_fd, send_buffer, BUFFER_SIZE) )> 0)
