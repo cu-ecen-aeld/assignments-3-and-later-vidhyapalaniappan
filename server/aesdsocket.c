@@ -29,6 +29,7 @@
 #include <pthread.h>
 #include <sys/queue.h>
 #include <sys/time.h>
+#include "../aesd-char-driver/aesd_ioctl.h"
 
 /*Defining MACROS*/
 #define PORT 9000
@@ -67,6 +68,7 @@ int execution_flag = 0;
 int sock_fd;
 int client_fd;
 int data_fd;
+int new_write = 0;
 
 /* Function prototypes */
 static void signal_handler(int signo);
@@ -495,6 +497,8 @@ void *multi_thread_handler(void *arg)
     struct sockaddr_in client_addr;               //structure to hold client socket address information
     socklen_t client_len = sizeof(client_addr);
 
+    bool ioctl_rcvd = false;
+
     getpeername(client_fd, (struct sockaddr *)&client_addr, &client_len);  //retrieve the IP address of the connected client
     
     //extracting the client's IP address from the client_addr structure and converting it from binary form to a string using inet_ntop.
@@ -514,23 +518,49 @@ void *multi_thread_handler(void *arg)
     //reading data from the client socket in chunks of up to BUFFER_SIZE bytes using the recv function.
     while((bytes_received = recv(thread_data->client_fd, recv_buffer, BUFFER_SIZE, 0))>0)
     {
-        if (write(data_fd, recv_buffer, bytes_received) == -1)  //writing the received data to the data file using the write function.
+        /*if (write(data_fd, recv_buffer, bytes_received) == -1)  //writing the received data to the data file using the write function.
         {
             syslog(LOG_ERR,"Failed to write to file");
             exit(WRITE_FAILED);
-        }
+        }*/
         if (memchr(recv_buffer, '\n', bytes_received) != NULL) //checking if the received data contains a newline character  
         {
             break;
         }
     }
-//#if (USE_AESD_CHAR_DEVICE == 0)
-//    if (lseek(data_fd, 0, SEEK_SET) == -1)
-//    {
-//        syslog(LOG_ERR,"Failed: lseek");
-//       exit(LSEEK_FAILED);
-//    }
-//#endif
+    if(0 == strncmp(recv_buffer, "AESDCHAR_IOCSEEKTO:", 19))
+    {
+        //strings are same
+        struct aesd_seekto seeker;
+        char *temp = &recv_buffer[19];
+        sscanf(temp, "%d,%d", &seeker.write_cmd, &seeker.write_cmd_offset);
+        if(ioctl(data_fd , AESDCHAR_IOCSEEKTO, &seeker))
+        {
+            perror("ioctl()");
+        }
+        ioctl_rcvd = true;
+    }
+
+    if(!ioctl_rcvd)
+    {
+        int val_write = write(data_fd, recv_buffer, bytes_received);
+    }
+
+    if(-1 == val_write)
+    {
+        perror("write() error");
+		signal_handler();
+		exit(-1);    
+    }
+
+    new_write += val_write;
+#if (USE_AESD_CHAR_DEVICE == 0)
+    if (lseek(data_fd, 0, SEEK_SET) == -1)
+    {
+        syslog(LOG_ERR,"Failed: lseek");
+       exit(LSEEK_FAILED);
+    }
+#endif
 
     //reading data from the data file into the buffer in chunks of up to BUFFER_SIZE bytes using the read function
     while((bytes_read = read(data_fd, send_buffer, BUFFER_SIZE) )> 0)

@@ -34,6 +34,7 @@ struct aesd_dev
     struct aesd_circular_buffer cbuff;
     struct mutex mutex_lock;
     struct aesd_buffer_entry buffer_entry;
+    int cir_buff_total_size;
 };
 
 

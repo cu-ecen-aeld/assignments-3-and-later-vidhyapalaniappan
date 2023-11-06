@@ -107,24 +107,47 @@ const char *update_buffer_full(struct aesd_circular_buffer *buffer, const struct
 * Any necessary locking must be handled by the caller
 * Any memory referenced in @param add_entry must be allocated by and/or must have a lifetime managed by the caller.
 */
-const char *aesd_circular_buffer_add_entry(struct aesd_circular_buffer *buffer, const struct aesd_buffer_entry *add_entry)
+struct aesd_buffer_entry *aesd_circular_buffer_add_entry(struct aesd_circular_buffer *buffer, const struct aesd_buffer_entry *add_entry)
 {
     /**
     * TODO: implement per description
     */
         
-    char *return_value = NULL;
-    if (!buffer || !add_entry) {
-        return return_value;
-    }
-    if (is_buffer_full(buffer)) {
-        return_value = (char *)update_buffer_full(buffer, add_entry);
-    } 
-    else 
+    struct aesd_buffer_entry *retptr = NULL;
+
+    if ( (buffer->in_offs == buffer->out_offs) && buffer->full ) 
     {
-        update_buffer_not_full(buffer, add_entry);
+        // store value of buffptr before override 
+        retptr = &(buffer->entry[buffer->in_offs]);
+        // write to buffer and increment 
+        buffer->entry[buffer->in_offs] = *add_entry;
+
+        buffer->in_offs++;
+
+        //Check rollover
+        if(buffer->in_offs == AESDCHAR_MAX_WRITE_OPERATIONS_SUPPORTED)
+            buffer->in_offs = 0;
+
+        buffer->out_offs = buffer->in_offs; 
     }
-    return return_value;
+    else
+    {
+        buffer->entry[buffer->in_offs] = *add_entry;
+        buffer->in_offs++;
+
+        //Check rollover
+        if(buffer->in_offs == AESDCHAR_MAX_WRITE_OPERATIONS_SUPPORTED)
+        buffer->in_offs = 0;
+
+        //Check for full
+        if(buffer->in_offs == buffer->out_offs)
+            buffer->full = true;
+        else
+            buffer->full = false;
+        
+    }
+
+    return retptr;
 }
 
 /**
