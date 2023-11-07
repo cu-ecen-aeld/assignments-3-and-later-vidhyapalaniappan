@@ -187,7 +187,7 @@ ssize_t aesd_write(struct file *filp, const char __user *buf, size_t count, loff
     {
         if (device_struct->buffer_entry.buffptr[i] == '\n')  //checking if a newline character is encountered in the circular buffer
         {
-            current_entry = aesd_circular_buffer_add_entry(&device_struct->cbuff, &device_struct->buffer_entry);
+            current_entry = (const char *)aesd_circular_buffer_add_entry(&device_struct->cbuff, &device_struct->buffer_entry);
             buff_error = handle_circular_buffer(device_struct, current_entry);
             if (buff_error)  //checking if an error occurred during the circular buffer handling process
             {
