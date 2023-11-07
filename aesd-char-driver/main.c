@@ -228,6 +228,7 @@ loff_t aesd_llseek(struct file *filp, loff_t offset, int whence)
 
 }
 
+/*
 static long file_offset_move(struct file *filp, unsigned int write_cmd, unsigned int write_cmd_offset)
 {
     struct aesd_dev *device = filp->private_data;
@@ -291,7 +292,66 @@ long aesd_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
  	break;
      }
   return retval;
+}*/
+
+long aesd_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
+{
+    struct aesd_seekto seeker;
+    long retval = 0;
+
+    if (filp == NULL)
+    {
+        return -EFAULT;
+    }
+    if ((_IOC_TYPE(cmd) != AESD_IOC_MAGIC) || (_IOC_NR(cmd) > AESDCHAR_IOC_MAXNR))
+    {
+        return -ENOTTY;
+    }
+
+    if (mutex_lock_interruptible(&aesd_device.mutex_lock) != 0)
+    {
+        return -ERESTARTSYS;
+    }
+
+    switch (cmd)
+    {
+        case AESDCHAR_IOCSEEKTO:
+            if ((copy_from_user(&seeker, (const void __user *)arg, sizeof(seeker) == 0)))
+            {
+                struct aesd_dev *device = filp->private_data;
+                struct aesd_buffer_entry *buff_entry = NULL;
+                uint8_t i = 0;
+
+                AESD_CIRCULAR_BUFFER_FOREACH(buff_entry, &aesd_device.cbuff, i);
+
+                if ((seeker.write_cmd > AESDCHAR_MAX_WRITE_OPERATIONS_SUPPORTED) || (seeker.write_cmd > i) || (seeker.write_cmd_offset >= device->cbuff.entry[seeker.write_cmd].size))
+                {
+                    mutex_unlock(&aesd_device.mutex_lock);
+                    return -EINVAL;
+                }
+
+                for (i = 0; i < seeker.write_cmd; i++)
+                {
+                    filp->f_pos += device->cbuff.entry[i].size;
+                }
+
+                filp->f_pos += seeker.write_cmd_offset;
+            }
+            else
+            {
+                retval = -EFAULT;
+            }
+            break;
+
+        default:
+            retval = -ENOTTY;
+            break;
+    }
+
+    mutex_unlock(&aesd_device.mutex_lock);
+    return retval;
 }
+
 
 struct file_operations aesd_fops = {
 .owner =    THIS_MODULE,
