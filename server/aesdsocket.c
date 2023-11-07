@@ -455,9 +455,9 @@ void *multi_thread_handler(void *arg)
  *----------------------------------------------------------------------------*/
 void *multi_thread_handler(void *arg)
 {
-#if (USE_AESD_CHAR_DEVICE == 1)
-    const char *ioctl_str = "AESDCHAR_IOCSEEKTO:";
-#endif
+//#if (USE_AESD_CHAR_DEVICE == 1)
+//    const char *ioctl_string = "AESDCHAR_IOCSEEKTO:";
+//#endif
     data_fd = open(DATA_FILE, (O_CREAT | O_TRUNC | O_RDWR), (S_IRWXU | S_IRWXG | S_IROTH));
     if(data_fd == -1)
     {
@@ -520,7 +520,8 @@ void *multi_thread_handler(void *arg)
     {
     	syslog(LOG_INFO,"Inside recv while loop\n");
 #if (USE_AESD_CHAR_DEVICE == 1)
-            if (strncmp(recv_buffer, ioctl_str, strlen(ioctl_str)) == 0)
+	    const char *ioctl_string = "AESDCHAR_IOCSEEKTO:";	
+            if (strncmp(recv_buffer, ioctl_string, strlen(ioctl_string)) == 0)
             {
                 struct aesd_seekto seeker;
                 if (sscanf(recv_buffer, "AESDCHAR_IOCSEEKTO:%d,%d", &seeker.write_cmd, &seeker.write_cmd_offset) != 2)
