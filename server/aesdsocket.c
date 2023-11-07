@@ -518,23 +518,13 @@ void *multi_thread_handler(void *arg)
     //reading data from the client socket in chunks of up to BUFFER_SIZE bytes using the recv function.
     while((bytes_received = recv(thread_data->client_fd, recv_buffer, BUFFER_SIZE, 0))>0)
     {
-        if (write(data_fd, recv_buffer, bytes_received) == -1)  //writing the received data to the data file using the write function.
-        {
-            syslog(LOG_ERR,"Failed to write to file");
-            exit(WRITE_FAILED);
-        }
-        if (memchr(recv_buffer, '\n', bytes_received) != NULL) //checking if the received data contains a newline character  
-        {
-            break;
-        }
-    }
+    	syslog(LOG_INFO,"Inside recv while loop\n");
 #if (USE_AESD_CHAR_DEVICE == 1)
             if (0 == strncmp(recv_buffer, ioctl_str, strlen(ioctl_str)))
             {
+            	syslog(LOG_INFO,"ioctl string received\n");
                 struct aesd_seekto seeker;
-                if (2 != sscanf(recv_buffer, "AESDCHAR_IOCSEEKTO:%d,%d",
-                                                   &seeker.write_cmd,
-                                                   &seeker.write_cmd_offset))
+                if (2 != sscanf(recv_buffer, "AESDCHAR_IOCSEEKTO:%d,%d", &seeker.write_cmd, &seeker.write_cmd_offset))
                 {
                     syslog(LOG_ERR, "Failed to iocseekto");
                 }
@@ -545,9 +535,20 @@ void *multi_thread_handler(void *arg)
                         syslog(LOG_ERR, "Failed ioctl");
                     }
                 }
-                //goto read;
+                goto send;
             }
-#endif    
+#endif 
+        if (write(data_fd, recv_buffer, bytes_received) == -1)  //writing the received data to the data file using the write function.
+        {
+            syslog(LOG_ERR,"Failed to write to file");
+            exit(WRITE_FAILED);
+        }
+        if (memchr(recv_buffer, '\n', bytes_received) != NULL) //checking if the received data contains a newline character  
+        {
+            break;
+        }
+    }
+      
 //#if (USE_AESD_CHAR_DEVICE == 0)
 //    if (lseek(data_fd, 0, SEEK_SET) == -1)
 //    {
@@ -557,9 +558,10 @@ void *multi_thread_handler(void *arg)
 //#endif
 
     //reading data from the data file into the buffer in chunks of up to BUFFER_SIZE bytes using the read function
-//read:       
+send:       
     while((bytes_read = read(data_fd, send_buffer, BUFFER_SIZE) )> 0)
     {
+   	 syslog(LOG_INFO,"Sending data back\n");
         if (send(thread_data->client_fd, send_buffer, bytes_read, 0) == -1) //sending the data read from the file back to the client 
         {
             syslog(LOG_ERR,"Failed to send data");
