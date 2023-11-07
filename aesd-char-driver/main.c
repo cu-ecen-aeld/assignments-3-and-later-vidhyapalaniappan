@@ -243,10 +243,7 @@ static long file_offset_move(struct file *filp, unsigned int write_cmd, unsigned
     {
         return -ERESTARTSYS;
     }
-    AESD_CIRCULAR_BUFFER_FOREACH(buff_entry,&aesd_device.cbuff,i)
-    {
-
-    }
+    AESD_CIRCULAR_BUFFER_FOREACH(buff_entry,&aesd_device.cbuff,i);
     if ((write_cmd > AESDCHAR_MAX_WRITE_OPERATIONS_SUPPORTED) || (write_cmd > i) || (write_cmd_offset >= device->cbuff.entry[write_cmd].size))
     {
     	mutex_unlock(&device->mutex_lock);
@@ -270,25 +267,22 @@ long aesd_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
     {
         return -EFAULT;
     }
-    if (_IOC_TYPE(cmd) != AESD_IOC_MAGIC)
+    if ((_IOC_TYPE(cmd) != AESD_IOC_MAGIC) || (_IOC_NR(cmd) > AESDCHAR_IOC_MAXNR))
     {
         return -ENOTTY;
     }
-    if (_IOC_NR(cmd) > AESDCHAR_IOC_MAXNR)
-    {
- 	return -ENOTTY;
-    }
+
     
     switch (cmd)
     {
       case AESDCHAR_IOCSEEKTO:
-        if (copy_from_user(&seeker, (const void __user *)arg, sizeof(seeker)) != 0)
+        if (copy_from_user(&seeker, (const void __user *)arg, sizeof(seeker)) == 0)
         {
-           retval = -EFAULT;
+           retval = file_offset_move(filp, seeker.write_cmd, seeker.write_cmd_offset);
         }
         else
         {
-          retval = file_offset_move(filp, seeker.write_cmd, seeker.write_cmd_offset);
+           retval = -EFAULT;
         }
         break;
 
