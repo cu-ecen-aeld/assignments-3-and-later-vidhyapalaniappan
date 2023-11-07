@@ -59,6 +59,7 @@
 
 #if (USE_AESD_CHAR_DEVICE == 1)
 	#define DATA_FILE "/dev/aesdchar"
+	struct aesd_seekto seeker;
 #else 
 	#define DATA_FILE "/var/tmp/aesdsocketdata"
 #endif
@@ -520,21 +521,21 @@ void *multi_thread_handler(void *arg)
     {
     	syslog(LOG_INFO,"Inside recv while loop\n");
 #if (USE_AESD_CHAR_DEVICE == 1)
-            if (0 == strncmp(recv_buffer, ioctl_str, strlen(ioctl_str)))
+            if (strncmp(recv_buffer, ioctl_str, strlen(ioctl_str)) == 0)
             {
-                struct aesd_seekto seeker;
-                if (2 != sscanf(recv_buffer, "AESDCHAR_IOCSEEKTO:%d,%d", &seeker.write_cmd, &seeker.write_cmd_offset))
+                //struct aesd_seekto seeker;
+                if (sscanf(recv_buffer, "AESDCHAR_IOCSEEKTO:%d,%d", &seeker.write_cmd, &seeker.write_cmd_offset) != 2)
                 {
                     syslog(LOG_ERR, "Failed to iocseekto");
                 }
                 else
                 {
-                    if(0 != ioctl(data_fd, AESDCHAR_IOCSEEKTO, &seeker))
+                    if(ioctl(data_fd, AESDCHAR_IOCSEEKTO, &seeker) != 0)
                     {
                         syslog(LOG_ERR, "Failed ioctl");
                     }
                 }
-               // goto send;
+                goto send;
             }
 #endif 
         if (write(data_fd, recv_buffer, bytes_received) == -1)  //writing the received data to the data file using the write function.
@@ -557,7 +558,7 @@ void *multi_thread_handler(void *arg)
 //#endif
 
     //reading data from the data file into the buffer in chunks of up to BUFFER_SIZE bytes using the read function
-//send:       
+send:       
     while((bytes_read = read(data_fd, send_buffer, BUFFER_SIZE) )> 0)
     {
         if (send(thread_data->client_fd, send_buffer, bytes_read, 0) == -1) //sending the data read from the file back to the client 
