@@ -204,17 +204,17 @@ ssize_t aesd_write(struct file *filp, const char __user *buf, size_t count, loff
 
 loff_t aesd_llseek(struct file *filp, loff_t offset, int whence)
 {
-    struct aesd_dev *dev = NULL;
-    loff_t seek_offset = 0;
-    uint8_t i = 0;
     struct aesd_buffer_entry *entry = NULL;
+    struct aesd_dev *dev = filp->private_data;
+    loff_t seek_offset = 0;
     loff_t seek_size = 0;
-    if (NULL == filp)
+    uint8_t i = 0;
+    
+    if (filp == NULL)
     {
-        return -EINVAL;
+        return -EFAULT;
     }
-    dev = filp->private_data;
-    if (0 != mutex_lock_interruptible(&dev->mutex_lock))
+    if (mutex_lock_interruptible(&dev->mutex_lock) != 0)
     {
         return -ERESTARTSYS;
     }
@@ -230,22 +230,17 @@ loff_t aesd_llseek(struct file *filp, loff_t offset, int whence)
 
 static long aesd_adjust_file_offset(struct file *filp, unsigned int write_cmd, unsigned int write_cmd_offset)
 {
-    struct aesd_dev *dev = NULL;
+    struct aesd_dev *dev = filp->private_data;
     long retval = 0;
     uint8_t i = 0;
-    struct aesd_buffer_entry *entry = NULL;
-    if (NULL == filp)
+
+    if (filp == NULL)
     {
-        return -EINVAL;
+        return -EFAULT;
     }
-    dev = filp->private_data;
-    if (0 != mutex_lock_interruptible(&dev->mutex_lock))
+    if (mutex_lock_interruptible(&dev->mutex_lock) != 0)
     {
         return -ERESTARTSYS;
-    }
-    AESD_CIRCULAR_BUFFER_FOREACH(entry,&aesd_device.cbuff,i)
-    {
-
     }
     if ((write_cmd > AESDCHAR_MAX_WRITE_OPERATIONS_SUPPORTED) || (write_cmd > i) || (write_cmd_offset >= dev->cbuff.entry[write_cmd].size))
     {
@@ -265,12 +260,12 @@ exit:
 
 long aesd_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 {
-    long retval = 0;
     struct aesd_seekto seeker;
-    if (NULL == filp)
+    long retval = 0;
+
+    if (filp == NULL)
     {
-        PDEBUG("ERROR: aesd_ioctl invalid arguments");
-        return -EINVAL;
+        return -EFAULT;
     }
     if (_IOC_TYPE(cmd) != AESD_IOC_MAGIC)
     {
@@ -280,9 +275,10 @@ long aesd_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
     {
  	return -ENOTTY;
     }
- 	switch (cmd)
- 	{
- 	    case AESDCHAR_IOCSEEKTO:
+    
+    switch (cmd)
+    {
+      case AESDCHAR_IOCSEEKTO:
         if (copy_from_user(&seeker, (const void __user *)arg, sizeof(seeker)) != 0)
         {
            retval = -EFAULT;
@@ -293,11 +289,11 @@ long aesd_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
         }
         break;
 
- 	    default:
- 		retval = -ENOTTY;
- 		break;
- 	}
- 	return retval;
+      default:
+ 	retval = -ENOTTY;
+ 	break;
+     }
+     return retval;
 }
 
 struct file_operations aesd_fops = {
