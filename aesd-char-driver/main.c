@@ -228,7 +228,7 @@ loff_t aesd_llseek(struct file *filp, loff_t offset, int whence)
 
 }
 
-static long file_offset_move(struct file *filp, unsigned int write_cmd, unsigned int write_cmd_offset)
+static long aesd_adjust_file_offset(struct file *filp, unsigned int write_cmd, unsigned int write_cmd_offset)
 {
     struct aesd_dev *dev = filp->private_data;
     struct aesd_buffer_entry *buff_entry = NULL;
@@ -288,7 +288,7 @@ long aesd_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
         }
         else
         {
-          retval = file_offset_move(filp, seeker.write_cmd, seeker.write_cmd_offset);
+          retval = aesd_adjust_file_offset(filp, seeker.write_cmd, seeker.write_cmd_offset);
         }
         break;
 
