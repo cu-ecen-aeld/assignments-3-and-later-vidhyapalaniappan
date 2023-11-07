@@ -205,7 +205,7 @@ ssize_t aesd_write(struct file *filp, const char __user *buf, size_t count, loff
 loff_t aesd_llseek(struct file *filp, loff_t offset, int whence)
 {
     struct aesd_buffer_entry *buff_entry = NULL;
-    struct aesd_dev *dev = filp->private_data;
+    struct aesd_dev *device = filp->private_data;
     loff_t seek_offset = 0;
     loff_t seek_size = 0;
     uint8_t i = 0;
@@ -214,7 +214,7 @@ loff_t aesd_llseek(struct file *filp, loff_t offset, int whence)
     {
         return -EFAULT;
     }
-    if (mutex_lock_interruptible(&dev->mutex_lock) != 0)
+    if (mutex_lock_interruptible(&device->mutex_lock) != 0)
     {
         return -ERESTARTSYS;
     }
@@ -222,7 +222,7 @@ loff_t aesd_llseek(struct file *filp, loff_t offset, int whence)
     {
         seek_size += buff_entry->size;
     }
-    mutex_unlock(&dev->mutex_lock);
+    mutex_unlock(&device->mutex_lock);
     seek_offset = fixed_size_llseek(filp, offset, whence, seek_size);
     return seek_offset;
 
@@ -230,7 +230,7 @@ loff_t aesd_llseek(struct file *filp, loff_t offset, int whence)
 
 static long aesd_adjust_file_offset(struct file *filp, unsigned int write_cmd, unsigned int write_cmd_offset)
 {
-    struct aesd_dev *dev = filp->private_data;
+    struct aesd_dev *device = filp->private_data;
     struct aesd_buffer_entry *buff_entry = NULL;
     long retval = 0;
     uint8_t i = 0;
@@ -239,7 +239,7 @@ static long aesd_adjust_file_offset(struct file *filp, unsigned int write_cmd, u
     {
         return -EFAULT;
     }
-    if (mutex_lock_interruptible(&dev->mutex_lock) != 0)
+    if (mutex_lock_interruptible(&device->mutex_lock) != 0)
     {
         return -ERESTARTSYS;
     }
@@ -247,17 +247,17 @@ static long aesd_adjust_file_offset(struct file *filp, unsigned int write_cmd, u
     {
 
     }
-    if ((write_cmd > AESDCHAR_MAX_WRITE_OPERATIONS_SUPPORTED) || (write_cmd > i) || (write_cmd_offset >= dev->cbuff.entry[write_cmd].size))
+    if ((write_cmd > AESDCHAR_MAX_WRITE_OPERATIONS_SUPPORTED) || (write_cmd > i) || (write_cmd_offset >= device->cbuff.entry[write_cmd].size))
     {
     	mutex_unlock(&device->mutex_lock);
     	return -EINVAL;
     }
     for (i = 0; i < write_cmd; i++)
     {
-        filp->f_pos += dev->cbuff.entry[i].size;
+        filp->f_pos += device->cbuff.entry[i].size;
     }
     filp->f_pos += write_cmd_offset;
-    mutex_unlock(&dev->mutex_lock);
+    mutex_unlock(&device->mutex_lock);
     return retval;
 }
 
