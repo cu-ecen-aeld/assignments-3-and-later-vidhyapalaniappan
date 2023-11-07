@@ -186,16 +186,6 @@ int main(int argc, char **argv)
     }
     syslog(LOG_INFO, "Server is listening on port %d", PORT);
 
-    //Opening file with permisiions 0644 gave bad file descriptor error. So changed the arguments
-    //opening a data file (DATA_FILE) for both reading and writing
-    //data_fd = open(DATA_FILE, (O_CREAT | O_TRUNC | O_RDWR), (S_IRWXU | S_IRWXG | S_IROTH));
-    //if(data_fd == -1)
-    //{
-    //    closelog();
-    //    perror("Error opening socket file:");
-    //    return -1;
-    //}
-
 #if (USE_AESD_CHAR_DEVICE == 0)
     pthread_mutex_t mutex; //initializing the mutex
     pthread_mutex_init(&mutex, NULL);
@@ -455,9 +445,6 @@ void *multi_thread_handler(void *arg)
  *----------------------------------------------------------------------------*/
 void *multi_thread_handler(void *arg)
 {
-//#if (USE_AESD_CHAR_DEVICE == 1)
-//    const char *ioctl_string = "AESDCHAR_IOCSEEKTO:";
-//#endif
     data_fd = open(DATA_FILE, (O_CREAT | O_TRUNC | O_RDWR), (S_IRWXU | S_IRWXG | S_IROTH));
     if(data_fd == -1)
     {
@@ -518,22 +505,18 @@ void *multi_thread_handler(void *arg)
     //reading data from the client socket in chunks of up to BUFFER_SIZE bytes using the recv function.
     while((bytes_received = recv(thread_data->client_fd, recv_buffer, BUFFER_SIZE, 0))>0)
     {
-    	syslog(LOG_INFO,"Inside recv while loop\n");
 #if (USE_AESD_CHAR_DEVICE == 1)
 	    const char *ioctl_string = "AESDCHAR_IOCSEEKTO:";	
-            if (strncmp(recv_buffer, ioctl_string, strlen(ioctl_string)) == 0)
+            if (strncmp(recv_buffer, ioctl_string, strlen(ioctl_string)) == 0)  //Comparing if the received string is AESDCHAR_IOSEEKTO
             {
                 struct aesd_seekto seeker;
-                if (sscanf(recv_buffer, "AESDCHAR_IOCSEEKTO:%d,%d", &seeker.write_cmd, &seeker.write_cmd_offset) != 2)
+                if (sscanf(recv_buffer, "AESDCHAR_IOCSEEKTO:%d,%d", &seeker.write_cmd, &seeker.write_cmd_offset) != 2)  //adding the write cmd and offset to the recieved buffer
                 {
                     syslog(LOG_ERR, "Failed to iocseekto");
                 }
                 else
                 {
-                    if(ioctl(data_fd, AESDCHAR_IOCSEEKTO, &seeker) != 0)
-                    {
-                        syslog(LOG_ERR, "Failed ioctl");
-                    }
+                    ioctl(data_fd, AESDCHAR_IOCSEEKTO, &seeker);
                 }
                 goto send;
             }
@@ -548,16 +531,8 @@ void *multi_thread_handler(void *arg)
             break;
         }
     }
-      
-//#if (USE_AESD_CHAR_DEVICE == 0)
-//    if (lseek(data_fd, 0, SEEK_SET) == -1)
-//    {
-//        syslog(LOG_ERR,"Failed: lseek");
-//       exit(LSEEK_FAILED);
-//    }
-//#endif
 
-    //reading data from the data file into the buffer in chunks of up to BUFFER_SIZE bytes using the read function
+//reading data from the data file into the buffer in chunks of up to BUFFER_SIZE bytes using the read function
 send:       
     while((bytes_read = read(data_fd, send_buffer, BUFFER_SIZE) )> 0)
     {
@@ -575,6 +550,7 @@ send:
         exit(MUTEX_UNLOCK_FAILED);
     }
 #endif
+
     close(thread_data->client_fd);
     close(data_fd);
     thread_data->thread_complete = 1;
