@@ -59,7 +59,6 @@
 
 #if (USE_AESD_CHAR_DEVICE == 1)
 	#define DATA_FILE "/dev/aesdchar"
-	struct aesd_seekto seeker;
 #else 
 	#define DATA_FILE "/var/tmp/aesdsocketdata"
 #endif
@@ -523,7 +522,7 @@ void *multi_thread_handler(void *arg)
 #if (USE_AESD_CHAR_DEVICE == 1)
             if (strncmp(recv_buffer, ioctl_str, strlen(ioctl_str)) == 0)
             {
-                //struct aesd_seekto seeker;
+                struct aesd_seekto seeker;
                 if (sscanf(recv_buffer, "AESDCHAR_IOCSEEKTO:%d,%d", &seeker.write_cmd, &seeker.write_cmd_offset) != 2)
                 {
                     syslog(LOG_ERR, "Failed to iocseekto");
