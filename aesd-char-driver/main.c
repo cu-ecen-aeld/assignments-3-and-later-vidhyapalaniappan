@@ -202,7 +202,7 @@ ssize_t aesd_write(struct file *filp, const char __user *buf, size_t count, loff
     return retval;
 }
 
-/*******************************A9*********************************************************/
+/***************************************** A9 *************************************************************/
 loff_t aesd_llseek(struct file *filp, loff_t offset, int whence)
 {
     struct aesd_buffer_entry *buff_entry = NULL;  //declaring a pointer to a struct aesd_buffer_entry
