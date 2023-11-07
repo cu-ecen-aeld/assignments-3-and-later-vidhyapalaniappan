@@ -231,6 +231,7 @@ loff_t aesd_llseek(struct file *filp, loff_t offset, int whence)
 static long aesd_adjust_file_offset(struct file *filp, unsigned int write_cmd, unsigned int write_cmd_offset)
 {
     struct aesd_dev *dev = filp->private_data;
+    struct aesd_buffer_entry *entry = NULL;
     long retval = 0;
     uint8_t i = 0;
 
@@ -241,6 +242,10 @@ static long aesd_adjust_file_offset(struct file *filp, unsigned int write_cmd, u
     if (mutex_lock_interruptible(&dev->mutex_lock) != 0)
     {
         return -ERESTARTSYS;
+    }
+    AESD_CIRCULAR_BUFFER_FOREACH(entry,&aesd_device.cbuff,i)
+    {
+
     }
     if ((write_cmd > AESDCHAR_MAX_WRITE_OPERATIONS_SUPPORTED) || (write_cmd > i) || (write_cmd_offset >= dev->cbuff.entry[write_cmd].size))
     {
@@ -293,7 +298,7 @@ long aesd_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
  	retval = -ENOTTY;
  	break;
      }
-     return retval;
+  return retval;
 }
 
 struct file_operations aesd_fops = {
