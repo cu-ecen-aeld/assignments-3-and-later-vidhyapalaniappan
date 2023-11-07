@@ -545,7 +545,7 @@ void *multi_thread_handler(void *arg)
                         syslog(LOG_ERR, "Failed ioctl");
                     }
                 }
-                goto read;
+                //goto read;
             }
 #endif    
 //#if (USE_AESD_CHAR_DEVICE == 0)
@@ -557,7 +557,7 @@ void *multi_thread_handler(void *arg)
 //#endif
 
     //reading data from the data file into the buffer in chunks of up to BUFFER_SIZE bytes using the read function
-read:       
+//read:       
     while((bytes_read = read(data_fd, send_buffer, BUFFER_SIZE) )> 0)
     {
         if (send(thread_data->client_fd, send_buffer, bytes_read, 0) == -1) //sending the data read from the file back to the client 
