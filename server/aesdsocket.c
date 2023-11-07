@@ -522,7 +522,6 @@ void *multi_thread_handler(void *arg)
 #if (USE_AESD_CHAR_DEVICE == 1)
             if (0 == strncmp(recv_buffer, ioctl_str, strlen(ioctl_str)))
             {
-            	syslog(LOG_INFO,"ioctl string received\n");
                 struct aesd_seekto seeker;
                 if (2 != sscanf(recv_buffer, "AESDCHAR_IOCSEEKTO:%d,%d", &seeker.write_cmd, &seeker.write_cmd_offset))
                 {
@@ -535,7 +534,7 @@ void *multi_thread_handler(void *arg)
                         syslog(LOG_ERR, "Failed ioctl");
                     }
                 }
-                goto send;
+               // goto send;
             }
 #endif 
         if (write(data_fd, recv_buffer, bytes_received) == -1)  //writing the received data to the data file using the write function.
@@ -558,10 +557,9 @@ void *multi_thread_handler(void *arg)
 //#endif
 
     //reading data from the data file into the buffer in chunks of up to BUFFER_SIZE bytes using the read function
-send:       
+//send:       
     while((bytes_read = read(data_fd, send_buffer, BUFFER_SIZE) )> 0)
     {
-   	 syslog(LOG_INFO,"Sending data back\n");
         if (send(thread_data->client_fd, send_buffer, bytes_read, 0) == -1) //sending the data read from the file back to the client 
         {
             syslog(LOG_ERR,"Failed to send data");
