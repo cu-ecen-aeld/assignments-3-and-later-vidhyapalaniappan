@@ -113,6 +113,7 @@ ssize_t aesd_read(struct file *filp, char __user *buf, size_t count, loff_t *f_p
     else
     {
         printk(KERN_ALERT "Failed to copied %ld bytes\n", read_bytes);
+        mutex_unlock(&(device_struct->mutex_lock)); //releasing the mutex
         return -EFAULT;
     }
     retval = read_bytes;  //number of bytes successfully read
@@ -316,8 +317,6 @@ static int aesd_setup_cdev(struct aesd_dev *dev)
     return err;
 }
 
-
-
 int aesd_init_module(void)
 {
     dev_t dev = 0;
@@ -364,6 +363,7 @@ void aesd_cleanup_module(void)
         {
             kfree(entry->buffptr); //deallocating memory associated with the buffptr
         }
+        mutex_destroy(&aesd_device.mutex_lock);
     }
 
     unregister_chrdev_region(devno, 1);
