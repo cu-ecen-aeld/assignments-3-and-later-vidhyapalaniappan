@@ -10,7 +10,7 @@
  * @copyright Copyright (c) 2019
  * @modified Vidhya. PL
  * @modified on 2023-10-29
- * @reference and credits- aesd_write function : https://github.com/cu-ecen-aeld/assignments-3-and-later-vishalraj3112/blob/main/aesd-char-driver/main.c
+ * @reference and credits- aesd_ioctl func : https://github.com/cu-ecen-aeld/assignments-3-and-later-chchbuff/blob/main/aesd-char-driver/main.c
  */
 
 #include <linux/module.h>
@@ -21,6 +21,7 @@
 #include <linux/fs.h> // file_operations
 #include <linux/slab.h>
 #include "aesdchar.h"
+#include "aesd_ioctl.h"
 
 int aesd_major = 0; // use dynamic major
 int aesd_minor = 0;
@@ -112,6 +113,7 @@ ssize_t aesd_read(struct file *filp, char __user *buf, size_t count, loff_t *f_p
     else
     {
         printk(KERN_ALERT "Failed to copied %ld bytes\n", read_bytes);
+        mutex_unlock(&(device_struct->mutex_lock)); //releasing the mutex
         return -EFAULT;
     }
     retval = read_bytes;  //number of bytes successfully read
@@ -186,7 +188,7 @@ ssize_t aesd_write(struct file *filp, const char __user *buf, size_t count, loff
     {
         if (device_struct->buffer_entry.buffptr[i] == '\n')  //checking if a newline character is encountered in the circular buffer
         {
-            current_entry = aesd_circular_buffer_add_entry(&device_struct->cbuff, &device_struct->buffer_entry);
+            current_entry = (const char *)aesd_circular_buffer_add_entry(&device_struct->cbuff, &device_struct->buffer_entry);
             buff_error = handle_circular_buffer(device_struct, current_entry);
             if (buff_error)  //checking if an error occurred during the circular buffer handling process
             {
@@ -200,12 +202,105 @@ ssize_t aesd_write(struct file *filp, const char __user *buf, size_t count, loff
     return retval;
 }
 
+/***************************************** A9 ***********************************************************/
+loff_t aesd_llseek(struct file *filp, loff_t offset, int whence)
+{
+    struct aesd_buffer_entry *buff_entry = NULL;  //declaring a pointer to a struct aesd_buffer_entry
+    struct aesd_dev *device = filp->private_data; //extracting the private_data field from the struct file pointer filp
+    loff_t seek_offset = 0; //to store the new file position
+    loff_t seek_size = 0; //to accumulate the sizes of the aesd_buffer_entry structures.
+    uint8_t i = 0; //loop counter
+    
+    if (filp == NULL)
+    {
+        return -EFAULT;
+    }
+    if (mutex_lock_interruptible(&device->mutex_lock) != 0)
+    {
+        return -ERESTARTSYS;
+    }
+    AESD_CIRCULAR_BUFFER_FOREACH(buff_entry,&aesd_device.cbuff,i) // iterating through the circular buffer
+    {
+        seek_size += buff_entry->size; //adding the size of each buff_entry into the seek_size variable
+    }
+    mutex_unlock(&device->mutex_lock);
+    seek_offset = fixed_size_llseek(filp, offset, whence, seek_size); //calculating the new file position based on the offset, whence, and the total size of the file.
+    return seek_offset;
+
+}
+
+static long file_offset_move(struct file *filp, unsigned int write_cmd, unsigned int write_cmd_offset)
+{
+    struct aesd_dev *device = filp->private_data; //extracting the private_data field from the struct file pointer filp
+    struct aesd_buffer_entry *buff_entry = NULL;  //declaring a pointer to a struct aesd_buffer_entry
+    long retval = 0; //return variable
+    uint8_t i = 0; //loop counter
+
+    if (filp == NULL)
+    {
+        return -EFAULT;
+    }
+    if (mutex_lock_interruptible(&device->mutex_lock) != 0)
+    {
+        return -ERESTARTSYS;
+    }
+    AESD_CIRCULAR_BUFFER_FOREACH(buff_entry,&aesd_device.cbuff,i); // iterating through the circular buffer
+    if ((write_cmd > AESDCHAR_MAX_WRITE_OPERATIONS_SUPPORTED) || (write_cmd > i) || (write_cmd_offset >= device->cbuff.entry[write_cmd].size))
+    {
+    	mutex_unlock(&device->mutex_lock);
+    	return -EINVAL;
+    }
+    for (i = 0; i < write_cmd; i++)
+    {
+        filp->f_pos += device->cbuff.entry[i].size; //moving the file position within the circular buffer.
+    }
+    filp->f_pos += write_cmd_offset; //setting the final file position.
+    mutex_unlock(&device->mutex_lock);
+    return retval;
+}
+
+long aesd_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
+{
+    struct aesd_seekto seeker; //variable to store data provided by the user through the arg parameter.
+    long retval = 0; //return variable
+
+    if (filp == NULL)
+    {
+        return -EFAULT;
+    }
+    if ((_IOC_TYPE(cmd) != AESD_IOC_MAGIC) || (_IOC_NR(cmd) > AESDCHAR_IOC_MAXNR))
+    {
+        return -ENOTTY;
+    }
+    
+    switch (cmd)
+    {
+      case AESDCHAR_IOCSEEKTO:
+        if (copy_from_user(&seeker, (const void __user *)arg, sizeof(seeker)) == 0)  //copy data from the user space into the seeker variable
+        {
+           retval = file_offset_move(filp, seeker.write_cmd, seeker.write_cmd_offset);
+        }
+        else
+        {
+           retval = -EFAULT;
+        }
+        break;
+
+      default:
+ 	retval = -ENOTTY;
+ 	break;
+     }
+  return retval;
+}
+
 struct file_operations aesd_fops = {
 .owner =    THIS_MODULE,
 .read =     aesd_read,
 .write =    aesd_write,
 .open =     aesd_open,
 .release =  aesd_release,
+.llseek = aesd_llseek,
+.unlocked_ioctl = aesd_ioctl
 };
 
 static int aesd_setup_cdev(struct aesd_dev *dev)
@@ -221,8 +316,6 @@ static int aesd_setup_cdev(struct aesd_dev *dev)
     }
     return err;
 }
-
-
 
 int aesd_init_module(void)
 {
@@ -270,6 +363,7 @@ void aesd_cleanup_module(void)
         {
             kfree(entry->buffptr); //deallocating memory associated with the buffptr
         }
+        mutex_destroy(&aesd_device.mutex_lock);
     }
 
     unregister_chrdev_region(devno, 1);
